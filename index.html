@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실험 진행 앱 · 가정용 휴머노이드 로봇 모션</title>
+<style>
+:root{
+  --navy:#2B3947; --ink:#1E2933; --accent:#5B8CA8; --accent-d:#47738C;
+  --mut:#7C8A97; --line:#E2E7EC; --line-s:#F0F3F6;
+  --bg:#F5F7F9; --panel:#fff; --ok:#3E8E6E; --warn:#C08A2E; --bad:#C0562E;
+  --r:10px; --shadow:0 1px 2px rgba(27,40,52,.05), 0 4px 16px rgba(27,40,52,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Pretendard','Malgun Gothic','맑은 고딕',-apple-system,BlinkMacSystemFont,sans-serif;
+  color:var(--ink);background:var(--bg);font-size:15px;line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+button{font-family:inherit;font-size:14.5px;padding:10px 20px;border:1px solid var(--navy);
+  background:var(--navy);color:#fff;border-radius:8px;cursor:pointer;font-weight:600;
+  transition:.14s;white-space:nowrap}
+button:hover{background:var(--ink)}
+button.ghost{background:#fff;color:var(--navy);border-color:var(--line)}
+button.ghost:hover{background:#EEF2F5;border-color:#CBD5DD}
+button.sm{padding:7px 14px;font-size:13px;border-radius:7px}
+button:disabled{border-color:var(--line);background:#F1F4F6;color:#B4BEC7;cursor:default}
+input,select,textarea{font-family:inherit;font-size:14.5px;padding:10px 13px;border:1px solid var(--line);
+  border-radius:8px;width:100%;background:#fff;color:var(--ink);transition:.14s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,168,.13)}
+textarea{resize:vertical;min-height:96px;line-height:1.72}
+code{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:.9em;
+  background:#EDF1F4;padding:1px 5px;border-radius:4px}
+.hide{display:none !important}
+
+/* ══ 시작 화면 ══ */
+#setup{max-width:820px;margin:0 auto;padding:52px 24px 90px}
+.brand{font-size:12px;font-weight:700;letter-spacing:.09em;color:var(--accent);margin-bottom:8px}
+#setup h1{font-size:30px;margin:0 0 8px;letter-spacing:-.02em}
+.sub{color:var(--mut);font-size:14px;margin:0 0 34px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:24px 26px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card>h2{font-size:13px;margin:0 0 3px;color:var(--accent);letter-spacing:.05em;font-weight:700}
+.card>p.help{color:var(--mut);font-size:13px;margin:0 0 18px;line-height:1.65}
+.field{margin-bottom:15px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.field .hint{color:var(--mut);font-size:12px;font-weight:400;margin-left:7px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.note{background:#FFFBF0;border:1px solid #EBDCB4;border-radius:9px;padding:13px 16px;font-size:13px;margin-top:14px;line-height:1.6}
+.note b{color:var(--warn)}
+.chk{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:13.5px;border-bottom:1px solid var(--line-s)}
+.chk:last-child{border-bottom:0}
+.chk .ico{width:18px;height:18px;border-radius:50%;flex:0 0 18px;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff;background:#CBD5DD}
+.chk.ok .ico{background:var(--ok)} .chk.bad .ico{background:var(--bad)} .chk.run .ico{background:var(--accent)}
+.chk .txt{flex:1} .chk .res{color:var(--mut);font-size:12.5px}
+.actions{display:flex;gap:10px;margin-top:24px;align-items:center}
+.actions .spacer{flex:1}
+
+/* ══ 진행 화면 ══ */
+#run{display:none;height:100%}
+#run.on{display:flex}
+#side{width:296px;flex:0 0 296px;background:var(--panel);border-right:1px solid var(--line);
+  overflow-y:auto;height:100vh;padding:0 0 40px}
+#side .who{padding:20px 22px 15px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:2}
+#side .who .pid{font-size:20px;font-weight:700;letter-spacing:-.01em}
+#side .who .seq{color:var(--mut);font-size:11.5px;margin-top:5px;line-height:1.55;word-break:keep-all}
+.grouphdr{padding:17px 22px 5px;font-size:10.5px;font-weight:700;color:var(--accent);letter-spacing:.09em}
+.stepitem{padding:8px 20px 8px 46px;position:relative;font-size:13.5px;color:var(--mut);
+  cursor:pointer;border-left:3px solid transparent;transition:.12s}
+.stepitem:hover{background:#F7F9FB;color:var(--ink)}
+.stepitem .dot{position:absolute;left:21px;top:11px;width:15px;height:15px;border:1.5px solid #CDD7DE;
+  border-radius:50%;background:#fff}
+.stepitem.done{color:var(--ink)}
+.stepitem.done .dot{background:var(--ok);border-color:var(--ok)}
+.stepitem.done .dot::after{content:'';position:absolute;left:4.3px;top:1.6px;width:4px;height:8px;
+  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg)}
+.stepitem.cur{color:var(--ink);font-weight:700;background:#EDF3F7;border-left-color:var(--accent)}
+.stepitem.cur .dot{border-color:var(--accent);border-width:4.5px;background:#fff}
+.stepitem .t{color:var(--mut);font-size:11px;font-weight:400;margin-left:6px}
+
+#main{flex:1;overflow-y:auto;height:100vh;padding:0 0 108px;scroll-behavior:smooth}
+#topbar{position:sticky;top:0;z-index:20;background:rgba(245,247,249,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:0}
+#topbar .bar{height:3px;background:var(--line-s)}
+#topbar .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+#topbar .in{padding:13px 40px;display:flex;align-items:center;gap:15px}
+#topbar .tag{background:var(--navy);color:#fff;border-radius:6px;padding:3px 11px;font-size:12.5px;font-weight:700}
+#topbar h2{font-size:16.5px;margin:0;flex:1;font-weight:700;letter-spacing:-.01em}
+#topbar .meta{color:var(--mut);font-size:12.5px;display:flex;gap:14px;align-items:center}
+#topbar .clock{font-variant-numeric:tabular-nums}
+#body{padding:32px 40px;max-width:1150px}
+.lead{font-size:21px;font-weight:700;margin:0 0 10px;letter-spacing:-.015em}
+.desc{font-size:15.5px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 var(--r) var(--r) 0;padding:17px 22px;margin:0 0 24px;box-shadow:var(--shadow);line-height:1.68}
+
+/* 시점 안내 배너 */
+.pov{display:flex;align-items:center;gap:13px;border-radius:var(--r);padding:15px 22px;margin:0 0 18px;
+  font-size:16.5px;font-weight:700;letter-spacing:-.012em;line-height:1.5;box-shadow:var(--shadow)}
+.pov .k{font-size:12px;font-weight:800;padding:5px 11px;border-radius:20px;flex:0 0 auto;white-space:nowrap}
+.pov.ni{background:#EDF2F8;border:1px solid #C2D3E3;color:#28455E}
+.pov.ni .k{background:#28455E;color:#fff}
+.pov.di{background:#FCF0EA;border:1px solid #EEC7B3;color:#834122}
+.pov.di .k{background:#834122;color:#fff}
+
+/* 제출 안내 */
+.subnote{background:#FFF8EA;border:1px solid #EBD7AC;border-left:3px solid var(--warn);
+  border-radius:0 var(--r) var(--r) 0;padding:13px 21px;margin:0 0 20px;font-size:14.5px;
+  color:#7A6428;line-height:1.6}
+.subnote b{color:#8A6410}
+.mod{background:#FFFBF0;border:1px solid #EBDCB4;border-radius:9px;padding:12px 17px;font-size:13px;
+  margin:0 0 20px;color:#7A6428}
+.mod b{color:var(--warn)}
+
+/* 스토리보드 */
+.sbwrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;
+  margin-bottom:24px;box-shadow:var(--shadow)}
+/* 같은 자극 안에서 문항 묶음만 넘어갔을 때 — 이미지가 바뀐 줄 알까 봐 붙입니다 */
+.samimg{margin:-4px 0 16px;padding:9px 14px;border-radius:8px;background:#EDF3F8;
+  color:#4A7C99;font-size:13.5px;line-height:1.6}
+.samimg b{color:#2B3947}
+.sb{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cell{position:relative}
+.cell .ph{position:relative;border-radius:7px;overflow:hidden;background:#EDF0F3;aspect-ratio:16/9}
+.cell img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;transition:.15s}
+.cell .ph:hover img{transform:scale(1.012)}
+.cell .n{position:absolute;left:10px;top:10px;width:26px;height:26px;border-radius:50%;
+  background:rgba(20,28,36,.8);color:#fff;font-size:12.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.cell .cap{font-size:12.5px;color:var(--ink);margin-top:9px;line-height:1.55;min-height:40px;word-break:keep-all}
+.cell .miss{position:absolute;inset:0;border:1px dashed #C3CED8;border-radius:7px;display:flex;
+  align-items:center;justify-content:center;text-align:center;color:var(--bad);font-size:11.5px;
+  padding:10px;background:#FDF6F4}
+
+/* 설문 */
+.formbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-bottom:24px;box-shadow:var(--shadow)}
+.formbox .fh{padding:12px 18px;border-bottom:1px solid var(--line);font-size:13.5px;font-weight:700;
+  display:flex;align-items:center;gap:10px}
+.formbox .fh .badge{background:#E9F2ED;color:var(--ok);border-radius:5px;padding:2px 9px;font-size:11.5px;font-weight:600}
+.formbox .fh .badge.w{background:#FBF3E3;color:var(--warn)}
+.formbox .fh .sp{flex:1}
+.formbox .fh .nums{font-weight:400;font-size:12.5px;color:var(--mut)}
+.formbox .fh .nums b{color:var(--ink);font-size:14px;font-weight:700;letter-spacing:.01em}
+.formbox .fh a.open{margin-left:12px;font-size:11.5px;color:var(--mut);text-decoration:none;
+  border:1px solid var(--line);border-radius:5px;padding:3px 9px;font-weight:500}
+.formbox .fh a.open:hover{background:#EEF2F5;color:var(--ink)}
+.formbox iframe{width:100%;height:760px;border:0;display:block;background:#fff}
+.formbox .noform{padding:38px 20px;text-align:center;color:var(--mut);font-size:13.5px}
+
+/* 확인 토글 */
+.confirm{display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px 20px;margin-bottom:24px;cursor:pointer;transition:.14s;box-shadow:var(--shadow)}
+.confirm:hover{border-color:#CBD5DD}
+.confirm.on{background:#F1F8F4;border-color:#B6DCC7}
+.confirm .box{width:21px;height:21px;border:1.8px solid #CDD7DE;border-radius:6px;flex:0 0 21px;
+  display:flex;align-items:center;justify-content:center;background:#fff;transition:.14s}
+.confirm.on .box{background:var(--ok);border-color:var(--ok)}
+.confirm.on .box::after{content:'';width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;
+  transform:rotate(42deg);margin-top:-2px}
+.confirm .lab{font-size:14.5px;font-weight:600}
+.confirm.on .lab{color:var(--ok)}
+
+/* 문항 */
+.qlist{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:4px 24px 20px;margin-bottom:24px;box-shadow:var(--shadow)}
+.q{padding:17px 0;border-bottom:1px solid var(--line-s)}
+.q:last-child{border-bottom:0}
+.q .no,.sq .no{display:inline-block;background:#EDF3F7;color:var(--accent);border-radius:5px;padding:1px 9px;
+  font-size:11.5px;font-weight:700;margin-right:9px;vertical-align:2px}
+.q .txt{font-size:15.5px;line-height:1.62}
+.q .nt{color:var(--mut);font-size:12.5px;margin-top:6px}
+.choices{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.choice{font:600 16px/1 inherit;padding:14px 26px;border-radius:10px;cursor:pointer;
+  background:var(--panel);color:var(--fg);border:1.5px solid var(--line)}
+.choice:hover{border-color:var(--mut)}
+.choice.on{background:#2C3E50;color:#fff;border-color:#2C3E50}
+.q textarea{margin-top:11px}
+/* 앱 내장 설문 */
+.vspace{height:0}
+.grp{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:22px 26px 8px;margin-bottom:20px;box-shadow:var(--shadow)}
+.grp h3{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.grp .gd{color:var(--mut);font-size:13.5px;line-height:1.6;margin:8px 0 2px}
+.grp .gstep{float:right;color:var(--mut);font-size:12.5px;font-weight:600}
+.sq{padding:20px 0;border-bottom:1px solid var(--line-s)}
+.sq:last-child{border-bottom:0}
+.sq .txt{font-size:15.5px;line-height:1.62;margin-bottom:14px}
+.sq.sd .txt{margin-bottom:10px}
+.sq.need .txt{color:#B4472F}
+.sc{display:flex;align-items:center;gap:14px}
+.sc .lab{color:var(--mut);font-size:13px;flex:0 0 120px;line-height:1.4}
+.sc .lab.r{text-align:right}
+.sc .opts{display:flex;gap:9px;flex:1;justify-content:center;flex-wrap:wrap}
+.sc .o{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:#fff;
+  cursor:pointer;font:600 14.5px/1 inherit;color:var(--fg)}
+.sc .o:hover{border-color:var(--mut)}
+.sc .o.on{background:#2C3E50;border-color:#2C3E50;color:#fff}
+.gnav{display:flex;gap:10px;align-items:center;padding:18px 0 22px;border-top:1px solid var(--line-s);margin-top:6px}
+.gnav .sp{flex:1}
+.gnav button{font:600 15px/1 inherit;padding:13px 22px;border-radius:9px;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--fg)}
+.gnav button.main{background:#2C3E50;border-color:#2C3E50;color:#fff}
+.gnav button:disabled{opacity:.45;cursor:default}
+.gnav .hint{color:var(--mut);font-size:12.5px}
+.sendbar{background:#EDF3F7;border:1px solid #D6E3EC;border-radius:var(--r);padding:13px 18px;
+  margin-bottom:20px;font-size:13.5px;color:#33556B}
+.sendbar.bad{background:#FDF0EC;border-color:#F0CFC4;color:#B4472F}
+.mcq{display:flex;align-items:baseline;gap:14px;padding:11px 0;border-bottom:1px solid var(--line-s);font-size:14.5px}
+.mcq:last-child{border-bottom:0}
+.mcq .c{color:var(--accent);font-size:11.5px;font-weight:700;width:46px;flex:0 0 46px}
+.tick{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-s);
+  font-size:14.5px;cursor:pointer}
+.tick:last-child{border-bottom:0}
+.tick .b{width:19px;height:19px;border:1.8px solid #CDD7DE;border-radius:5px;flex:0 0 19px;
+  display:flex;align-items:center;justify-content:center;background:#fff}
+.tick.on .b{background:var(--ok);border-color:var(--ok)}
+.tick.on .b::after{content:'';width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg);margin-top:-2px}
+.tick.on{color:var(--mut);text-decoration:line-through}
+
+/* 미니 스토리보드 */
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:15px 18px;
+  margin-bottom:14px;box-shadow:var(--shadow)}
+.mini h4{margin:0 0 10px;font-size:13px;color:var(--accent);font-weight:700}
+.mini .r6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.mini .r6 .ph{position:relative;border-radius:5px;overflow:hidden;background:#EDF0F3;aspect-ratio:16/9}
+.mini img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.mini .n{position:absolute;left:4px;top:4px;width:17px;height:17px;border-radius:50%;
+  background:rgba(20,28,36,.78);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+#nav{position:fixed;bottom:0;left:296px;right:0;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);padding:14px 40px;display:flex;gap:10px;align-items:center;z-index:30}
+#nav .spacer{flex:1}
+#nav .hintn{color:var(--mut);font-size:12.5px;margin-right:6px}
+kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;
+  font-size:11px;font-family:inherit;color:var(--mut);background:#fff}
+
+/* 참가자 모드 */
+body.pmode #side{display:none}
+body.pmode #nav{left:0}
+body.pmode .mod,body.pmode .memo,body.pmode .qlist.modonly{display:none}
+body.pmode #topbar .meta,body.pmode #topbar .tag{display:none}
+body.pmode #body{max-width:1280px;padding:36px 56px}
+.pflag{position:fixed;right:16px;bottom:74px;z-index:40;background:var(--navy);color:#fff;
+  border-radius:20px;padding:5px 14px;font-size:11.5px;font-weight:600;display:none}
+body.pmode .pflag{display:block}
+
+/* 라이트박스 */
+#lb{position:fixed;inset:0;background:rgba(16,22,28,.95);display:none;align-items:center;
+  justify-content:center;z-index:100;padding:26px;flex-direction:column}
+#lb.on{display:flex}
+#lb img{max-width:94%;max-height:80vh;border-radius:8px}
+#lb .cap{margin-top:18px;color:#E6EBEF;font-size:14.5px;text-align:center;max-width:800px;line-height:1.6}
+/* 좌우 넘김 영역 — 닫기 버튼 아래에서 시작해야 버튼을 가리지 않습니다 */
+#lb .nb{position:absolute;top:82px;bottom:0;width:16%;cursor:pointer;z-index:1}
+#lb .nb.l{left:0} #lb .nb.r{right:0}
+/* 닫기 — 글씨가 아니라 누르는 버튼으로 */
+#lb .x{position:absolute;top:18px;right:22px;z-index:3;width:46px;height:46px;line-height:44px;
+  border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.30);
+  color:#fff;font-size:21px;text-align:center;cursor:pointer;user-select:none;transition:.15s}
+#lb .x:hover{background:rgba(255,255,255,.32)}
+#lb .xh{position:absolute;top:70px;right:22px;z-index:3;color:#9AA7B2;font-size:12px;user-select:none}
+
+@media (max-width:1180px){ .sb{grid-template-columns:repeat(2,1fr)} .mini .r6{grid-template-columns:repeat(3,1fr)} }
+@media print{ #side,#nav,#topbar,.pflag{display:none} }
+</style>
+</head>
+<body>
+
+<!-- ══════════ 시작 화면 ══════════ -->
+<div id="setup">
+  <div class="brand">진행자 준비 화면</div>
+  <h1>실험 진행 도구</h1>
+  <p class="sub">참가자가 앉기 전에 이 화면에서 준비를 마치세요. 참가자에게는 보이지 않는 화면입니다.</p>
+
+  <div class="card">
+    <h2>참가자</h2>
+    <p class="help">도착 순서대로 번호를 배정합니다. 번호에 따라 제시 순서가 자동으로 정해집니다.</p>
+    <div class="grid2">
+      <div class="field"><label>참가자 번호</label><select id="pid"></select></div>
+      <div class="field"><label>이름 <span class="hint">기록용 · 선택</span></label><input id="pname" placeholder=""></div>
+    </div>
+    <div id="preview" class="note hide"></div>
+  </div>
+
+  <div class="card">
+    <h2>사전 점검</h2>
+    <p class="help">화면을 열면 자동으로 검사합니다. 네 줄이 모두 초록이면 바로 시작하셔도 됩니다.</p>
+    <div id="pfList">
+      <div class="chk" id="pf_img"><span class="ico">·</span><span class="txt">자극 이미지 48장</span><span class="res">대기</span></div>
+      <div class="chk" id="pf_base"><span class="ico">·</span><span class="txt">기본 설문 주소</span><span class="res">대기</span></div>
+      <div class="chk" id="pf_eval"><span class="ico">·</span><span class="txt">자극별 평가 · 번호 자동 입력</span><span class="res">대기</span></div>
+      <div class="chk" id="pf_mc"><span class="ico">·</span><span class="txt">움직임 설문 (2) · 번호 자동 입력</span><span class="res">대기</span></div>
+    </div>
+    <div class="actions" style="margin-top:16px">
+      <button class="ghost sm" id="btnPre">점검 실행</button>
+      <button class="ghost sm" id="btnPick">이미지 폴더 직접 선택</button>
+      <input type="file" id="imgpick" webkitdirectory directory multiple style="display:none">
+      <span class="spacer"></span>
+      <span style="color:var(--mut);font-size:12.5px" id="pfMsg"></span>
+    </div>
+  </div>
+
+  <p style="margin:22px 0 0;padding:11px 14px;border-radius:8px;background:#EDF3F8;
+     color:#4A7C99;font-size:13px;line-height:1.7">
+    앱 버전 <b>2026-08-21 d</b> &nbsp;·&nbsp; 캡션 48개 (0821 회의 반영) &nbsp;·&nbsp;
+    NARS 「나는」 주어 &nbsp;·&nbsp; 연습용 <b>P00</b> 번호 &nbsp;·&nbsp; 문항을 넘겨도 같은 이미지임을 안내 &nbsp;·&nbsp;
+    「진행 기록 관리」에서 참가자 한 명만 지우기<br>
+    <span style="color:#8B98A4">이 줄이 안 보이면 예전 파일을 열고 계신 것입니다.</span>
+  </p>
+
+  <div class="actions">
+    <button id="btnStart">실험 시작</button>
+    <button class="ghost" id="btnResume">이어서 진행</button>
+    <span class="spacer"></span>
+    <button class="ghost sm" id="btnTest" style="font-size:11.5px;padding:6px 12px">시험 제출 1건 보내기</button>
+    <button class="ghost sm" id="btnReset" style="font-size:11.5px;padding:6px 12px">진행 기록 관리</button>
+    <span style="color:var(--mut);font-size:12.5px">진행 상황은 참가자 번호별로 저장됩니다</span>
+  </div>
+  <div id="resetMsg" style="margin-top:10px;color:var(--mut);font-size:12.5px"></div>
+  <div class="card hide" id="recPanel" style="margin-top:12px">
+    <h2>진행 기록 관리</h2>
+    <p class="help">이 컴퓨터의 이 앱에 저장된 기록입니다. 여기서 지워도
+      <b>구글 스프레드시트에 이미 들어간 응답은 지워지지 않습니다.</b>
+      연습·시험으로 돌린 번호를 지우고 그 번호를 다시 쓰고 싶을 때 사용하세요.
+      지우기 전에 <b>내보내기</b>로 txt 사본을 받아 두시길 권합니다.</p>
+    <div id="recList"></div>
+  </div>
+
+  <div style="margin-top:32px;text-align:center">
+    <a href="#" id="btnAdv" style="color:var(--mut);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:2px">설정 변경</a>
+  </div>
+
+  <div class="card hide" id="adv" style="margin-top:16px">
+    <h2>설정 <span style="float:right"><button class="ghost sm" id="btnDef" style="font-size:11.5px;padding:4px 10px">기본값으로 되돌리기</button></span></h2>
+    <p class="help">폼 세 개와 이미지 폴더는 이미 연결돼 있습니다. <b>폼을 새로 만들었을 때만</b> 여기서 바꾸세요.
+      새 주소는 폼 편집 화면 <code>⋮ → 미리 채워진 링크 가져오기</code>에서 번호 칸에 <code>1-A</code>를 골라 뽑습니다.</p>
+    <div class="field"><label>기본 설문</label><input id="f_base"></div>
+    <div class="field"><label>자극별 평가</label><input id="f_eval"></div>
+    <div class="field"><label>움직임 설문 (2)</label><input id="f_mc"></div>
+    <div class="field"><label>이미지 폴더</label><input id="imgdir" value="IMAGE"></div>
+  </div>
+</div>
+
+<!-- ══════════ 진행 화면 ══════════ -->
+<div id="run">
+  <nav id="side">
+    <div class="who"><div class="pid" id="sPid">P01</div><div class="seq" id="sSeq"></div></div>
+    <div id="steps"></div>
+  </nav>
+  <main id="main">
+    <div id="topbar">
+      <div class="bar"><i id="pbar" style="width:0"></i></div>
+      <div class="in">
+        <span class="tag" id="tTag">1</span>
+        <h2 id="tTitle"></h2>
+        <span class="meta">
+          <span id="tProg"></span>
+        </span>
+      </div>
+    </div>
+    <div id="body"></div>
+  </main>
+  <div id="nav">
+    <button class="ghost" id="btnPrev">← 이전</button>
+    <button id="btnNext">다음 →</button>
+    <span class="spacer"></span>
+    <span class="hintn"><kbd>←</kbd> <kbd>→</kbd> 단계 이동 · <kbd>F</kbd> 참가자 화면 · <kbd>1</kbd>~<kbd>6</kbd> 이미지 확대</span>
+    <button class="ghost sm" id="btnP">참가자 화면</button>
+    <button class="ghost sm" id="btnExport">기록 내보내기</button>
+    <button class="ghost sm" id="btnExit">처음으로</button>
+  </div>
+</div>
+<div class="pflag">참가자 화면 · <kbd style="color:#fff;border-color:#5B6B7A">F</kbd> 로 해제</div>
+
+<div id="lb">
+  <span class="x" id="lbX" title="닫기">&#10005;</span>
+  <span class="xh">닫기</span>
+  <img id="lbImg" alt=""><div class="cap" id="lbCap"></div>
+  <div class="nb l" id="lbL"></div><div class="nb r" id="lbR"></div>
+</div>
+
+<script>
+/* ═══════════ 데이터 ═══════════ */
+const DATA = {"order": {"P01": {"seq": ["1-A", "1-B", "2-B", "2-A", "3-A", "3-B", "4-B", "4-A"], "iv": "맥락 1 → 3"}, "P02": {"seq": ["1-B", "1-A", "2-A", "2-B", "3-B", "3-A", "4-A", "4-B"], "iv": "맥락 1 → 3"}, "P03": {"seq": ["2-A", "2-B", "1-B", "1-A", "4-A", "4-B", "3-B", "3-A"], "iv": "맥락 1 → 3"}, "P04": {"seq": ["2-B", "2-A", "1-A", "1-B", "4-B", "4-A", "3-A", "3-B"], "iv": "맥락 1 → 3"}, "P05": {"seq": ["3-A", "3-B", "4-B", "4-A", "1-A", "1-B", "2-B", "2-A"], "iv": "맥락 3 → 1"}, "P06": {"seq": ["3-B", "3-A", "4-A", "4-B", "1-B", "1-A", "2-A", "2-B"], "iv": "맥락 3 → 1"}, "P07": {"seq": ["4-A", "4-B", "3-B", "3-A", "2-A", "2-B", "1-B", "1-A"], "iv": "맥락 3 → 1"}, "P08": {"seq": ["4-B", "4-A", "3-A", "3-B", "2-B", "2-A", "1-A", "1-B"], "iv": "맥락 3 → 1"}, "P09": {"seq": ["1-A", "1-B", "2-B", "2-A", "3-A", "3-B", "4-B", "4-A"], "iv": "맥락 1 → 3"}, "P10": {"seq": ["1-B", "1-A", "2-A", "2-B", "3-B", "3-A", "4-A", "4-B"], "iv": "맥락 1 → 3"}, "P11": {"seq": ["2-A", "2-B", "1-B", "1-A", "4-A", "4-B", "3-B", "3-A"], "iv": "맥락 1 → 3"}, "P12": {"seq": ["2-B", "2-A", "1-A", "1-B", "4-B", "4-A", "3-A", "3-B"], "iv": "맥락 1 → 3"}, "P13": {"seq": ["3-A", "3-B", "4-B", "4-A", "1-A", "1-B", "2-B", "2-A"], "iv": "맥락 3 → 1"}, "P14": {"seq": ["3-B", "3-A", "4-A", "4-B", "1-B", "1-A", "2-A", "2-B"], "iv": "맥락 3 → 1"}, "P15": {"seq": ["4-A", "4-B", "3-B", "3-A", "2-A", "2-B", "1-B", "1-A"], "iv": "맥락 3 → 1"}, "P16": {"seq": ["4-B", "4-A", "3-A", "3-B", "2-B", "2-A", "1-A", "1-B"], "iv": "맥락 3 → 1"}, "P17": {"seq": ["1-A", "1-B", "2-B", "2-A", "3-A", "3-B", "4-B", "4-A"], "iv": "맥락 1 → 3"}, "P18": {"seq": ["1-B", "1-A", "2-A", "2-B", "3-B", "3-A", "4-A", "4-B"], "iv": "맥락 1 → 3"}, "P19": {"seq": ["2-A", "2-B", "1-B", "1-A", "4-A", "4-B", "3-B", "3-A"], "iv": "맥락 1 → 3"}, "P20": {"seq": ["2-B", "2-A", "1-A", "1-B", "4-B", "4-A", "3-A", "3-B"], "iv": "맥락 1 → 3"}, "P21": {"seq": ["3-A", "3-B", "4-B", "4-A", "1-A", "1-B", "2-B", "2-A"], "iv": "맥락 3 → 1"}, "P22": {"seq": ["3-B", "3-A", "4-A", "4-B", "1-B", "1-A", "2-A", "2-B"], "iv": "맥락 3 → 1"}, "P23": {"seq": ["4-A", "4-B", "3-B", "3-A", "2-A", "2-B", "1-B", "1-A"], "iv": "맥락 3 → 1"}, "P24": {"seq": ["4-B", "4-A", "3-A", "3-B", "2-B", "2-A", "1-A", "1-B"], "iv": "맥락 3 → 1"}, "P25": {"seq": ["1-A", "1-B", "2-B", "2-A", "3-A", "3-B", "4-B", "4-A"], "iv": "맥락 1 → 3"}, "P26": {"seq": ["1-B", "1-A", "2-A", "2-B", "3-B", "3-A", "4-A", "4-B"], "iv": "맥락 1 → 3"}, "P27": {"seq": ["2-A", "2-B", "1-B", "1-A", "4-A", "4-B", "3-B", "3-A"], "iv": "맥락 1 → 3"}, "P28": {"seq": ["2-B", "2-A", "1-A", "1-B", "4-B", "4-A", "3-A", "3-B"], "iv": "맥락 1 → 3"}, "P29": {"seq": ["3-A", "3-B", "4-B", "4-A", "1-A", "1-B", "2-B", "2-A"], "iv": "맥락 3 → 1"}, "P30": {"seq": ["3-B", "3-A", "4-A", "4-B", "1-B", "1-A", "2-A", "2-B"], "iv": "맥락 3 → 1"}, "P31": {"seq": ["4-A", "4-B", "3-B", "3-A", "2-A", "2-B", "1-B", "1-A"], "iv": "맥락 3 → 1"}, "P32": {"seq": ["4-B", "4-A", "3-A", "3-B", "2-B", "2-A", "1-A", "1-B"], "iv": "맥락 3 → 1"}}, "cap": {"S1_HL": ["한 손으로 접시를 들고 개수대 앞에 서 있다", "양손을 활용하여 접시를 씻는다", "접시를 건조대에 위치시키기 위해 뒤로 살짝 위치를 이동한다", "접시를 놓을 위치를 탐색한다. 고개도 손을 따라간다", "확인한 위치에 접시를 위치시킨다", "개수대 앞으로 돌아와 설거지를 재개한다"], "S1_ML": ["개수대 앞에서 양손을 활용하여 설거지를 하고 있다", "몸은 그대로 둔 채 고개만 돌려 접시를 놓을 곳을 확인한다", "머리와 몸통, 다른 팔은 그대로 둔 채 접시를 쥔 팔만 아까 확인한 위치로 곧게 뻗는다", "건조대에 접시를 꽂는다", "뻗었던 팔이 돌아오고 다른 팔은 다음 접시의 설거지를 준비한다", "남은 설거지를 마저 한다"], "S2_HL": ["행주를 들고 선반 앞에 선다", "한 팔을 들어 선반을 닦는다", "손이 더 높은 곳으로 가면 상체가 함께 세워진다", "팔을 뻗어 선반 안쪽을 닦는다. 시선은 손끝을 향한다", "손을 옮겨가며 선반을 닦고 허리와 어깨가 함께 움직인다", "선반 닦기를 종료하고 다 닦은 선반을 눈으로 확인한다"], "S2_ML": ["양손에 행주를 들고 선반 닦기를 준비한다", "두 팔을 활용하여 동시에 선반을 닦는다", "몸통은 그대로 둔 채 양팔을 좌우로 움직여가며 선반을 닦는다", "몸통은 그대로 둔 채 다음 할 일을 위해 고개만 돌려 주위를 살핀다. 선반은 계속 닦고 있는 중이다", "고개가 돌아오면서도 선반을 계속 닦고 있는 중이다", "선반 닦기를 종료하고 다 닦은 선반을 눈으로 확인한다"], "S3_HL": ["개수대 앞에서 설거지를 하고 있는 중에 사람이 다가간다", "사람이 부르자 사람 쪽으로 고개를 돌려 확인한다", "사람과 마주 보고 접시를 건네고자 한다", "사람과 마주 본 채 두 손으로 접시를 넘긴다", "접시를 건넨 뒤 몸을 돌려 개수대 쪽으로 발걸음을 옮긴다", "설거지를 재개한다"], "S3_ML": ["개수대 앞에서 설거지를 하고 있는 중에 사람이 다가간다", "접시를 건네 달라는 사람의 말을 듣고, 몸통은 그대로 둔 채 고개만 돌려 확인한다", "몸통은 거의 돌리지 않고 어깨와 팔만 곧게 뻗어 접시를 내민다", "사람이 접시를 받는다", "뻗었던 팔을 그대로 가져온다", "설거지를 다시 재개한다"], "S4_HL": ["복도에서 사람이 걸어가는 중에 로봇이 서 있다", "비켜 달라는 말을 듣고 몸을 돌려 지나가는 사람을 확인한다", "사람이 지나가게 하기 위해 비켜설 자리를 눈으로 확인한다", "사람이 지나가기 위해 아까 확인한 위치로 발걸음을 옮긴다", "사람이 지나갈 때까지 위치를 유지한다", "대기하고 있으라는 말을 듣고 대기한다"], "S4_ML": ["복도에서 사람이 걸어가는 중에 로봇이 서 있다", "몸은 그대로 둔 채 고개만 돌려 누가 오는지 확인한다", "비켜 달라는 말을 듣고 고개를 완전히 돌려 확인한다", "한 발만 옆으로 옮겨 길을 비켜주려 한다", "옆으로 비켜선 채 사람이 지나갈 때까지 기다린다", "대기하고 있으라는 말을 듣고 몸을 곧게 세워 대기 중이다"]}};
+const ORDER = DATA.order, CAP = DATA.cap;
+/* P00 — 연습·시험용 번호. 실제 참가자가 아닙니다.
+   구글 시트에서 P00 행만 골라 지우면 되도록 따로 열어 둡니다.
+   제시 순서는 P01 과 같게 두었습니다. */
+ORDER['P00'] = { seq:['1-A','1-B','2-B','2-A','3-A','3-B','4-B','4-A'],
+                 iv:'맥락 1 → 3', practice:true };
+
+const SIT = {
+  1:{name:'설거지', ctx:1, desc:'집에 아무도 없습니다. 로봇이 혼자 주방에서 설거지를 하고, 다 닦은 그릇을 건조대에 넣습니다.'},
+  2:{name:'선반 닦기', ctx:1, desc:'집에 아무도 없습니다. 로봇이 혼자 주방 선반을 닦습니다.'},
+  3:{name:'접시 전달', ctx:2, desc:'당신이 로봇에게 접시를 부탁합니다. 로봇이 접시를 건네줍니다.'},
+  4:{name:'몸 비켜주기', ctx:2, desc:'좁은 복도를 당신이 지나갑니다. 로봇이 비켜줍니다.'}
+};
+const CTX = {
+  1:{name:'집에 아무도 없을 때', short:'비대면',
+     desc:'지금부터 보실 두 가지는 <b>집에 아무도 없는 동안</b> 로봇이 혼자 집안일을 하는 상황입니다.'},
+  2:{name:'직접 마주할 때', short:'직접',
+     desc:'지금부터 보실 두 가지는 <b>당신과 로봇이 직접 마주하는</b> 상황입니다.'}
+};
+const MOTION = { A:'HL', B:'ML' };
+
+/* 시점 안내 — 그림 속 '나'가 누구인지 매 화면에 명시 */
+const POV = {
+  1:{cls:'ni', k:'지금 상황', t:'<b>당신은 지금 집에 없습니다.</b> 로봇이 혼자 있는 모습을 보고 계십니다.'},
+  2:{cls:'di', k:'지금 상황', t:'<b>그림 속에서 로봇을 마주하고 있는 사람이 당신입니다.</b>'}
+};
+
+/* 연구자 폼 주소 — 미리 채워진 링크 (2026-08-09 폼 내용 직접 확인) */
+const DEFAULT_FORMS = {
+  base:'https://docs.google.com/forms/d/e/1FAIpQLScO1FdvpBwhw39AEO3NEl6UrQbuy0r0fIC-nQexM4bLrCBcbA/viewform?usp=pp_url&entry.760913044=P01',
+  eval:'https://docs.google.com/forms/d/e/1FAIpQLSdcY9qZdYbBd5YUI0smdVZnH2_28XdeoSC_PyOg3wBWtxk35A/viewform?usp=pp_url&entry.791648849=P01&entry.489287233=1-A',
+  mc  :'https://docs.google.com/forms/d/e/1FAIpQLSdQidyZkV-Mi8vk5xKSDnuVsO11XWowaFIFdpgnmtJQSVIhxQ/viewform?usp=pp_url&entry.2048195714=P01&entry.1716825202=1-A'
+};
+
+/* ═══════════ 자극별 평가 — 앱 내장판 (움직임 설문 1) ═══════════
+   2026-08-18. 구글폼을 화면에 끼워 넣는 대신, 앱이 문항을 직접 그리고
+   참가자가 다 답하면 같은 구글폼 주소로 조용히 제출합니다.
+   스프레드시트에는 지금까지와 똑같은 모양의 행이 쌓입니다.
+
+   ⚠ entry 번호는 「응답 미리 채우기」 링크에서 그대로 가져온 것입니다.
+     폼에서 문항을 추가·삭제·순서변경하면 번호가 바뀌고, 그때부터 그 문항 응답이
+     조용히 사라집니다(화면에는 아무 이상이 없어 보입니다).
+     폼을 고쳐야 하면 반드시 이 표도 같이 고치십시오. */
+const EVAL_POST = 'https://docs.google.com/forms/d/e/1FAIpQLSdcY9qZdYbBd5YUI0smdVZnH2_28XdeoSC_PyOg3wBWtxk35A/formResponse';
+const EVAL_PID  = 'entry.791648849';   // 참가자 번호
+const EVAL_CODE = 'entry.489287233';   // 자료 번호
+const EVAL_PAGES = '0';                // 단일 페이지 폼. 섹션으로 나뉘면 '0,1,2,3,4' 처럼 바꿉니다
+const EVAL_GROUPS = [
+  { t:'로봇의 작업 효율성',
+    d:'로봇의 움직임이 가정 내 과업을 얼마나 빠르고 능률적으로 수행하는지에 대한 질문입니다.',
+    scale:7, L:'전혀 그렇지 않다', R:'매우 그렇다', q:[
+    ['1-1','entry.1555673190','이 로봇의 움직임은 전반적인 과업 수행의 효율성을 높이는 데 유용할 것 같다.'],
+    ['1-2','entry.1210387708','이 로봇의 움직임은 주어진 과업을 더 빠르게 끝내는 데 도움이 될 것 같다.'],
+    ['1-3','entry.93392542',  '이 로봇의 움직임은 주어진 과업을 훨씬 수월하게 만들어 줄 것 같다.']]},
+  { t:'로봇에 대한 신뢰감',
+    d:'로봇이 에러 없이 정확하고 안전하게 작동할 것이라는 전반적인 믿음에 대한 질문입니다.',
+    scale:7, L:'전혀 그렇지 않다', R:'매우 그렇다', q:[
+    ['2-1','entry.1437408345','나는 이 로봇이 에러 없이 주어진 과업을 무사히 완수할 것이라고 믿는다.'],
+    ['2-2','entry.173307429', '나는 이 로봇이 상황에 맞게 안전한 방식으로 작업을 수행할 것이라고 믿는다.'],
+    ['2-3','entry.12683121',  '나는 이 로봇이 보여주는 전반적인 움직임과 시스템을 신뢰할 수 있다.']]},
+  { t:'가정 내 사용 의향',
+    d:'향후 이러한 방식으로 움직이는 로봇을 가정에 도입하고 일상적으로 사용할 의향이 있는지 묻는 질문입니다.',
+    scale:7, L:'전혀 그렇지 않다', R:'매우 그렇다', q:[
+    ['3-1','entry.1827560686','나는 이 로봇을 나의 일상 환경에 기꺼이 도입하고 싶다.'],
+    ['3-2','entry.1434243026','나는 이 로봇을 일상적인 과업 도우미로 계속해서 사용할 의향이 있다.'],
+    ['3-3','entry.611529888', '나는 이 로봇이 향후 상용화된다면 구매하거나 적극적으로 이용할 의향이 있다.']]},
+  { t:'로봇에 대한 감정 및 안전감',
+    d:'앞서 보신 로봇의 움직임을 지켜보면서 직관적으로 어떤 감정을 느끼셨는지 가장 가까운 곳에 체크해 주시면 됩니다.',
+    scale:5, sd:true, q:[
+    ['4-1','entry.482516265', '불안한 (Anxious)',   '편안한 (Relaxed)'],
+    ['4-2','entry.1862648498','긴장되는 (Agitated)','차분한 (Calm)'],
+    ['4-3','entry.1860030637','놀란 (Surprised)',   '평온한 (Quiescent)']]}
+];
+const EVAL_KEYS = EVAL_GROUPS.reduce((a,g)=>a.concat(g.q.map(x=>x[1])),[]);
+
+const MC_INTRO = '다음 6장은 로봇이 하나의 동작을 하는 과정을 순서대로 담은 것입니다. 이 장면들을 이어서 하나의 움직임으로 떠올린 뒤, <b>그 움직임에서 받은 인상</b>을 아래 네 문항에 답해 주세요.';
+/* 조작 점검 — 2026-08-11 랩미팅에서 7문항 → 4문항 (지도교수 지시)
+   1·2번은 직접 묻는 문항, 3·4번은 정의에 기반한 문항
+   2026-08-18 구글폼 「움직임 설문 (2)」를 직접 열어 확인한 문구와 일치시킴.
+   폼을 고치면 이 목록도 같이 고치십시오 — 어긋나면 진행자가 다른 문장을 읽게 됩니다 */
+/* ═══ 조작 점검 (움직임 설문 2) — 앱 내장판 ═══
+   2026-08-18 「응답 미리 채우기」 링크에서 entry 번호를 그대로 가져왔습니다.
+   ⚠ 폼 문항을 고치면 이 표도 반드시 같이 고치십시오 */
+const MC_POST  = 'https://docs.google.com/forms/d/e/1FAIpQLSdQidyZkV-Mi8vk5xKSDnuVsO11XWowaFIFdpgnmtJQSVIhxQ/formResponse';
+const MC_PID   = 'entry.2048195714';
+const MC_CODE  = 'entry.1716825202';
+const MC_PAGES = '0';
+const MC_GROUPS = [
+  { t:'움직임 인상',
+    d:'정답이 있는 문항이 아닙니다. 방금 보신 로봇의 움직임에 대해 느끼신 그대로 답해 주세요.',
+    scale:7, L:'전혀 그렇지 않다', R:'매우 그렇다', q:[
+    ['1','entry.1942652071','이 로봇의 움직임은 사람의 움직임처럼 느껴졌다.'],
+    ['2','entry.1867113590','이 로봇의 움직임은 기계적 움직임처럼 느껴졌다.'],
+    ['3','entry.101454314', '이 로봇의 움직임은 사람이 이 일을 한다면 했을 법한 움직임이었다.'],
+    ['4','entry.820762858', '이 로봇의 움직임은 효율을 추구하는 것처럼 느껴졌다.']]}
+];
+const MC_KEYS = MC_GROUPS.reduce((a,g)=>a.concat(g.q.map(x=>x[1])),[]);
+
+
+/* ═══ 사전 설문(기본 설문) — 앱 내장판 ═══
+   2026-08-18 「응답 미리 채우기」 링크 + 폼 화면 캡처로 문구·순서·척도를 확인했습니다.
+   3-1 ~ 3-14 는 NARS (Nomura, Kanda, & Suzuki, 2006) 14문항, 대조표 1~14번 순서 그대로입니다.
+   3-8 에는 이미 주어 「내가」가 들어가 있습니다 (2026-08-11 랩미팅 지시 반영 완료).
+   ⚠ 폼 문항을 고치면 이 표도 반드시 같이 고치십시오 */
+const BASE_POST = 'https://docs.google.com/forms/d/e/1FAIpQLScO1FdvpBwhw39AEO3NEl6UrQbuy0r0fIC-nQexM4bLrCBcbA/formResponse';
+const BASE_PID  = 'entry.760913044';
+const BASE_PAGES= '0';
+const L5 = {scale:5, L:'전혀 아니다', R:'매우 그렇다'};
+const BASE_GROUPS = [
+  { t:'기본 정보', d:'참가자의 기본 정보를 묻는 문항입니다. 수집된 정보는 연구 목적 외에는 사용되지 않습니다.', q:[
+    ['1-1','entry.841425446','귀하의 이름을 적어주세요.',{type:'text'}],
+    ['1-2','entry.613975195','귀하의 성별은 무엇입니까?',{type:'choice',opts:['남성','여성']}],
+    ['1-3','entry.110007943','귀하의 만 나이를 적어주세요.',{type:'text'}]]},
+  { t:'로봇과의 친숙도', d:'휴머노이드 로봇에 대한 사전 경험과 지식 수준을 묻는 문항입니다. 현재 알고 계신 정도를 그대로 답해 주시면 됩니다.', q:[
+    ['2-1','entry.1986143854','\u2018휴머노이드 로봇\u2019(사람과 비슷한 형태의 로봇)에 대해 들어본 적이 있습니까?',{type:'choice',opts:['예','아니요']}],
+    ['2-2','entry.848399007','평소 휴머노이드 로봇에 대해 어느 정도 알고 계십니까?',{type:'scale',scale:5,L:'전혀 모른다',R:'매우 잘 알고 있다'}]]},
+  { t:'로봇에 대한 평소 생각', d:'로봇에 대한 평소 생각을 묻는 문항입니다. 각 문장에 대해 본인의 생각과 가장 가까운 정도를 선택해 주시기 바랍니다. 정답은 없습니다.',
+    scale:5, L:'전혀 아니다', R:'매우 그렇다', q:[
+    ['3-1','entry.975038980', '나는 로봇이 실제로 감정을 가지고 있다면 불안할 것이다.'],
+    ['3-2','entry.2090874043','나는 로봇이 살아있는 생명체로 발전한다면 나쁜 일이 일어날지도 모른다고 생각한다.'],
+    ['3-3','entry.1426597143','나는 로봇과 대화하는 것이 편안하게 느껴질 것이다.'],
+    ['3-4','entry.900736403', '나는 로봇을 사용해야 하는 업무를 맡게 된다면 불안할 것이다.'],
+    ['3-5','entry.1389249256','로봇이 감정을 가지고 있다면, 나는 그들과 친구가 될 수 있을 것이다.']]},
+  { t:'로봇에 대한 평소 생각', d:'이어서 답해 주세요.',
+    scale:5, L:'전혀 아니다', R:'매우 그렇다', q:[
+    ['3-6','entry.994474849', '나는 감정을 가진 로봇과 함께 있으면 위안이 된다.'],
+    ['3-7','entry.68856887',  '\u2018로봇\u2019이라는 단어는 나에게 아무런 의미가 없다.'],
+    ['3-8','entry.1127523077','나는 다른 사람들 앞에서 로봇을 작동하는 것이 긴장된다.'],
+    ['3-9','entry.1471004568','나는 로봇이나 인공지능이 사물에 대해 판단을 내린다는 생각 자체가 싫다.'],
+    ['3-10','entry.1916652042','나는 로봇 앞에 서 있는 것만으로도 매우 긴장된다.']]},
+  { t:'로봇에 대한 평소 생각', d:'마지막 네 문항입니다.',
+    scale:5, L:'전혀 아니다', R:'매우 그렇다', q:[
+    ['3-11','entry.1760874698','나는 로봇에 너무 의존하면 나쁜 일이 일어날 것 같은 기분이 든다.'],
+    ['3-12','entry.2057288352','나는 로봇과 대화할 때 왠지 불안하고 경계하게 될 것 같다.'],
+    ['3-13','entry.2059692679','나는 로봇이 아이들에게 나쁜 영향을 미칠까 봐 걱정된다.'],
+    ['3-14','entry.1757952139','나는 미래에는 사회가 로봇에 의해 지배될 것이라고 느낀다.']]}
+];
+const BASE_KEYS = BASE_GROUPS.reduce((a,g)=>a.concat(g.q.map(x=>x[1])),[]);
+
+/* 세 설문의 설정을 한 곳에 모읍니다 — 화면·검사·제출 코드는 공통입니다 */
+const F_EVAL = {name:'움직임 설문 (1)', post:EVAL_POST, pid:EVAL_PID, code:EVAL_CODE,
+                keys:EVAL_KEYS, pages:EVAL_PAGES, groups:EVAL_GROUPS, ans:'ans',  sent:'sent'};
+const F_MC   = {name:'움직임 설문 (2)', post:MC_POST,  pid:MC_PID,  code:MC_CODE,
+                keys:MC_KEYS,  pages:MC_PAGES,  groups:MC_GROUPS,  ans:'ans2', sent:'sent2'};
+const F_BASE = {name:'사전 설문', post:BASE_POST, pid:BASE_PID, code:null,
+                keys:BASE_KEYS, pages:BASE_PAGES, groups:BASE_GROUPS, ans:'ans0', sent:'sent0'};
+/* 시나리오 인터뷰 — 참가자가 화면에 직접 입력합니다 (2026-08-11 랩미팅).
+   화면에는 질문만 둡니다. 진행자용 지시문·선택지 설명을 넣지 마십시오.
+   'CODES' 는 그 시나리오의 두 자료 번호(예: 1-A · 1-B)를 선택 버튼으로 띄웁니다. */
+const IV_SIT = {
+  1:[['1-1','[설거지] 두 가지 중 어느 움직임이 더 적절하다고 느끼셨나요?','','CODES'],
+     ['1-2','[설거지] 그렇게 느낀 가장 큰 이유는 무엇인가요?','']],
+  2:[['1-3','[선반 닦기] 두 가지 중 어느 움직임이 더 적절하다고 느끼셨나요?','','CODES'],
+     ['1-4','[선반 닦기] 그렇게 느낀 가장 큰 이유는 무엇인가요?','']],
+  3:[['2-1','[접시 전달] 두 가지 중 어느 움직임이 더 적절하다고 느끼셨나요?','','CODES'],
+     ['2-2','[접시 전달] 그렇게 느낀 이유는 무엇인가요?','']],
+  4:[['2-3','[몸 비켜주기] 두 가지 중 어느 움직임이 더 적절하다고 느끼셨나요?','','CODES'],
+     ['2-4','[몸 비켜주기] 그렇게 느낀 이유는 무엇인가요?','']]
+};
+/* 종합 질문 — 3-1·3-2 삭제, 아래 두 문항만 남김 (2026-08-11 랩미팅).
+   「편안할 것 같나요」는 유도가 되므로 쓰지 않습니다. 「적절할 것 같나요」로 물으십시오. */
+const FINAL = [
+  ['3-1','오늘 실험을 쭉 해 보셨는데, 가정에 로봇이 들어온다고 했을 때 전반적으로 어떤 방식이 적절할 것 같나요?',''],
+  ['3-2','한 공간에 있지만 서로 마주치지 않는 상황은 어떨 것 같으세요?','']
+];
+
+/* ═══════════ 상태 ═══════════ */
+let S = { pid:null, name:'', imgdir:'IMAGE', forms:{}, steps:[], i:0,
+          memo:{}, checks:{}, ticks:{}, times:{}, t0:null, cur0:null,
+          ans:{}, sent:{},     // 움직임 설문 (1) 응답 · 보낸 기록
+          ans2:{}, sent2:{},   // 움직임 설문 (2) 응답 · 보낸 기록
+          ans0:{}, sent0:{},   // 사전 설문 응답 · 보낸 기록
+          sub:0 };   // 자극별 평가 안에서 몇 번째 묶음을 보고 있는지 (0~3)
+let clockTimer = null, lbState = null;
+
+const $ = s => document.querySelector(s);
+const el = (t,c,h) => { const e=document.createElement(t); if(c)e.className=c; if(h!==undefined)e.innerHTML=h; return e; };
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const hhmm = ms => { const s=Math.floor(ms/1000); return pad(Math.floor(s/60))+':'+pad(s%60); };
+const stamp = d => pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
+
+/* ═══════════ 폼 주소 ═══════════ */
+function buildFormUrl(raw, code, pid){
+  raw=(raw||'').trim(); if(!raw) return {url:'',filled:0,entries:0};
+  raw=raw.split('#')[0];
+  let base=raw, qs=''; const qi=raw.indexOf('?');
+  if(qi>=0){ base=raw.slice(0,qi); qs=raw.slice(qi+1); }
+  let p; try{ p=new URLSearchParams(qs); }catch(e){ p=new URLSearchParams(); }
+  let filled=0, entries=0;
+  Array.from(p.entries()).forEach(([k,v])=>{
+    if(k.indexOf('entry.')!==0) return; entries++;
+    if(/^P\s*\d{1,2}$/i.test(v)){ if(pid){ p.set(k,pid); filled++; } else p.delete(k); }   // 앱에 입력한 참가자 번호를 폼에 자동 기입
+    else if(/^[1-4]\s*-\s*[AB]$/i.test(v)){ if(code){ p.set(k,code); filled++; } else p.delete(k); }
+  });
+  p.set('embedded','true');
+  if(entries && !p.has('usp')) p.set('usp','pp_url');
+  return { url: base+'?'+p.toString(), filled, entries };
+}
+
+/* ═══════════ 단계 ═══════════ */
+function buildSteps(pid){
+  const seq = ORDER[pid].seq, st=[];
+  /* 안내·동의 단계와 종료 단계는 앱에서 뺐습니다 (2026-08-11 랩미팅). 사전 설문부터 시작합니다 */
+  st.push({g:'준비', t:'사전 설문', k:'form'});
+  const ctxP=[]; seq.forEach(c=>{ const x=SIT[+c[0]].ctx; if(!ctxP.includes(x)) ctxP.push(x); });
+  ctxP.forEach(ctx=>{
+    const G=`자극 제시 · ${CTX[ctx].short}`;
+    st.push({g:G, t:`${CTX[ctx].name} 안내`, k:'ctxintro', ctx});
+    seq.filter(c=>SIT[+c[0]].ctx===ctx).forEach(code=>{
+      st.push({g:G, t:`${code} · ${SIT[+code[0]].name}`, k:'stim', n:+code[0], m:code[2], code});
+    });
+  });
+  st.push({g:'자극 제시 · 확인', t:'쉬는 시간', k:'datacheck'});
+  const ivF = /1/.test((ORDER[pid].iv||'').split('→')[0]) ? 1 : 2;
+  [ivF, ivF===1?2:1].forEach(ctx=>{
+    const G=`재시청·인터뷰 · ${CTX[ctx].short}`, sits=[];
+    seq.forEach(c=>{ const n=+c[0]; if(SIT[n].ctx===ctx && !sits.includes(n)) sits.push(n); });
+    sits.forEach(n=>{
+      seq.filter(c=>+c[0]===n).forEach(code=>{
+        st.push({g:G, t:`${code} 다시 보기 → 움직임 설문 (2)`, k:'recheck', n, m:code[2], code, ctx});
+      });
+      st.push({g:G, t:`${SIT[n].name} 시나리오 인터뷰`, k:'sitiv', n, ctx});
+    });
+    /* 상황 종합 인터뷰는 삭제했습니다 (2026-08-11 랩미팅).
+       필요한 내용은 시나리오 인터뷰 때 진행자가 구두로 추가 질문합니다 */
+  });
+  st.push({g:'마무리', t:'종합 질문', k:'final'});
+  return st;
+}
+const codesOfSit = n => ORDER[S.pid].seq.filter(c=>+c[0]===n);
+const sitsOfCtx = ctx => { const o=[]; ORDER[S.pid].seq.forEach(c=>{const n=+c[0]; if(SIT[n].ctx===ctx&&!o.includes(n))o.push(n);}); return o; };
+
+/* ═══════════ 조각 ═══════════ */
+let IMGMAP = null;   // 폴더를 직접 고른 경우 { 'S1_HL_01.png': blob:… }
+const imgName = (n,m,i) => `S${n}_${MOTION[m]}_0${i}.png`;
+const imgSrc = (n,m,i) => (IMGMAP && IMGMAP[imgName(n,m,i)]) || `${S.imgdir}/${imgName(n,m,i)}`;
+
+function openLb(n,m,code,i){
+  lbState={n,m,code,i};
+  const caps=CAP[`S${n}_${MOTION[m]}`]||[];
+  $('#lbImg').src=imgSrc(n,m,i);
+  $('#lbCap').innerHTML=`<b>${esc(code)} · ${i}번</b><br>${esc(caps[i-1]||'')}`;
+  $('#lb').classList.add('on');
+}
+function lbStep(d){ if(!lbState) return; let i=lbState.i+d; if(i<1)i=6; if(i>6)i=1; openLb(lbState.n,lbState.m,lbState.code,i); }
+
+function storyboard(n,m,code){
+  const caps=CAP[`S${n}_${MOTION[m]}`]||[], w=el('div','sbwrap'), g=el('div','sb');
+  for(let i=1;i<=6;i++){
+    const c=el('div','cell'), src=imgSrc(n,m,i);
+    c.innerHTML=`<div class="ph"><img src="${src}" alt="${esc(code)} ${i}" loading="eager"
+        onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<div class=&quot;miss&quot;>이미지 없음<br>${esc(src)}</div>')">
+      <div class="n">${i}</div></div><div class="cap">${esc(caps[i-1]||'')}</div>`;
+    const im=c.querySelector('img'); if(im) im.onclick=()=>openLb(n,m,code,i);
+    if(im) im.addEventListener('load', ()=>{ if(document.querySelector('.vspace')) fitSpace(); });
+    g.appendChild(c);
+  }
+  w.appendChild(g); return w;
+}
+function miniSb(n,m,code,label){
+  const w=el('div','mini'); w.appendChild(el('h4',null,esc(label)));
+  const r=el('div','r6');
+  for(let i=1;i<=6;i++){
+    const src=imgSrc(n,m,i), d=el('div','ph');
+    d.innerHTML=`<img src="${src}" alt=""><div class="n">${i}</div>`;
+    d.querySelector('img').onclick=()=>openLb(n,m,code,i);
+    r.appendChild(d);
+  }
+  w.appendChild(r); return w;
+}
+function formBox(which,label,code){
+  const r=buildFormUrl(S.forms[which],code,S.pid), b=el('div','formbox');
+  const badge = !S.forms[which] ? '' :
+    (r.filled ? `<span class="badge">번호 자동</span>` : `<span class="badge w">번호 직접 선택</span>`);
+  b.appendChild(el('div','fh', `${esc(label)}${badge}<span class="sp"></span>`
+    + `<span class="nums">참가자 번호 <b>${esc(S.pid)}</b>${code?` · 번호 <b>${esc(code)}</b>`:''}</span>`));
+  if(r.url){
+    b.innerHTML += `<iframe src="${r.url}" loading="eager"></iframe>`;
+    const a=el('a','open','새 창');
+    a.href=r.url.replace('&embedded=true','').replace('?embedded=true&','?');
+    a.target='_blank'; a.title='폼이 화면에 안 뜰 때만 사용하세요';
+    b.querySelector('.fh').appendChild(a);
+  }
+  else b.innerHTML += `<div class="noform">구글폼 주소가 없습니다. <b>처음으로</b> → 주소 입력</div>`;
+  return b;
+}
+/* ═══ 앱 내장 설문 — 그리기 · 검사 · 제출 (두 설문 공통) ═══ */
+function fFor(st){ return st.k==='form' ? F_BASE : (st.k==='stim' ? F_EVAL : F_MC); }
+function codeOf(st){ return st.k==='form' ? '_base' : st.code; }
+const IS_SURVEY = st => st && (st.k==='form' || st.k==='stim' || st.k==='recheck');
+function evalDone(F, code, gi){        // gi 를 주면 그 묶음만, 안 주면 전체
+  const a=S[F.ans][code]||{};
+  const gs = gi==null ? F.groups : [F.groups[gi]];
+  return gs.every(g=>g.q.every(q=>a[q[1]]));
+}
+function groupBox(F, code, gi, showNeed){
+  const g=F.groups[gi], a=S[F.ans][code]||(S[F.ans][code]={});
+  const w=el('div','grp');
+  w.appendChild(el('h3',null,(F.groups.length>1 ? `<span class="gstep">${gi+1} / ${F.groups.length}</span>` : '')+esc(g.t)));
+  w.appendChild(el('div','gd',esc(g.d)));
+  g.q.forEach(q=>{
+    const [no,key,t,x]=q;
+    const o = (x && typeof x==='object') ? x : null;         // 사전 설문: 유형 지정
+    const sdRight = (!o && typeof x==='string') ? x : null;  // 의미분별: 오른쪽 라벨
+    const miss = showNeed && !a[key];
+    /* 의미분별(GODSPEED) 문항은 좌우 양끝 말이 곧 문항입니다.
+       구글폼처럼 번호만 두고, 말은 척도 양옆에만 둡니다 (같은 말을 두 번 쓰지 않도록) */
+    const isSD = g.sd && !o;
+    const row=el('div','sq'+(miss?' need':'')+(isSD?' sd':''));
+    row.appendChild(el('div','txt',`<span class="no">${no}</span>${isSD?'':esc(t)}${miss?' <b>· 답해 주세요</b>':''}`));
+    if(o && o.type==='text'){
+      const inp=el('input'); inp.type='text'; inp.value=a[key]||'';
+      inp.style.maxWidth='320px'; inp.placeholder='여기에 적어 주세요';
+      inp.oninput=()=>{ a[key]=inp.value.trim(); save(); refreshGnav(); };
+      row.appendChild(inp);
+    } else if(o && o.type==='choice'){
+      const r=el('div','choices');
+      o.opts.forEach(v=>{
+        const b=el('button','choice'+(a[key]===v?' on':''), esc(v));
+        b.onclick=()=>{ a[key]=v; save();
+          r.querySelectorAll('.choice').forEach(x=>x.classList.remove('on'));
+          b.classList.add('on'); row.classList.remove('need'); refreshGnav(); };
+        r.appendChild(b);
+      });
+      row.appendChild(r);
+    } else {
+      const sc=el('div','sc');
+      const n  = (o&&o.scale) || g.scale;
+      const L  = (o&&o.L) || (g.sd ? t : g.L);
+      const R  = (o&&o.R) || (g.sd ? sdRight : g.R);
+      sc.appendChild(el('div','lab',esc(L)));
+      const opts=el('div','opts');
+      for(let v=1;v<=n;v++){
+        const b=el('button','o'+(String(a[key])===String(v)?' on':''), String(v));
+        b.onclick=()=>{ a[key]=String(v); save();
+          opts.querySelectorAll('.o').forEach(x=>x.classList.remove('on'));
+          b.classList.add('on'); row.classList.remove('need'); refreshGnav(); };
+        opts.appendChild(b);
+      }
+      sc.appendChild(opts);
+      sc.appendChild(el('div','lab r',esc(R)));
+      row.appendChild(sc);
+    }
+    w.appendChild(row);
+  });
+  return w;
+}
+function t2(q,i){ return q[2+i]; }   // 의미분별: q=[no,key,왼쪽,오른쪽]
+
+/* 구글폼으로 조용히 제출.
+   브라우저가 구글의 응답을 읽을 수 없으므로(보안 정책) 성공 여부는 알 수 없습니다.
+   그래서 응답은 앱 안에도 항상 남기고, 「기록 내보내기」로 복구할 수 있게 합니다. */
+function sendEval(F, code){
+  const a=S[F.ans][code]||{};
+  const body=new URLSearchParams();
+  body.append(F.pid, S.pid);
+  if(F.code) body.append(F.code, code);
+  F.keys.forEach(k=>{ if(a[k]) body.append(k, a[k]); });
+  body.append('fvv','1'); body.append('draftResponse','[]');
+  body.append('pageHistory', F.pages); body.append('fbzx','0');
+  return fetch(F.post, {method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString()})
+    .then(()=>{ S[F.sent][code]=new Date().toISOString();
+                  (S.sig||(S.sig={}))[F.ans+code]=JSON.stringify(S[F.ans][code]||{});
+                  save(); return true; })
+    .catch(()=>{ S[F.sent][code]='실패'; save(); return false; });
+}
+
+function povBar(ctx){
+  const p = POV[ctx];
+  return el('div','pov '+p.cls, `<span class="k">${p.k}</span><span>${p.t}</span>`);
+}
+function submitNote(){
+  return el('div','subnote',
+    '설문을 마치면 <b>맨 아래 [제출] 버튼</b>을 눌러 주세요. 제출해야 답변이 저장됩니다.');
+}
+function tickList(items,key){
+  const box=el('div','qlist modonly');
+  items.forEach((t,j)=>{
+    const id=key+j, on=!!S.ticks[id];
+    const r=el('div','tick'+(on?' on':''), `<span class="b"></span><span>${esc(t)}</span>`);
+    r.onclick=()=>{ S.ticks[id]=!S.ticks[id]; save(); render(); };
+    box.appendChild(r);
+  });
+  return box;
+}
+/* 인터뷰 문항 (2026-08-11 랩미팅 · 2026-08-18 확정)
+   컴퓨터는 참가자가 들고 있습니다. 그러므로 이 화면에 진행자용 요소를 넣지 마십시오.
+   · 질문 글 — 참가자가 읽습니다
+   · A/B 선택 버튼 — 참가자가 직접 누릅니다. 순서는 그 참가자가 「본 순서」입니다
+   · 서술형 답은 참가자가 말로 하고, 녹음으로 남깁니다. 입력창은 두지 않습니다
+     (진행자는 별도 기기나 종이에 키워드만 적습니다) */
+function qBlock(items, codes){
+  const q=el('div','qlist');
+  items.forEach(([no,t,n,ch])=>{
+    const w=el('div','q');
+    w.innerHTML=`<div class="txt"><span class="no">${no}</span>${esc(t)}</div>`;
+    if(ch==='CODES' && codes && codes.length){
+      const row=el('div','choices');
+      codes.forEach(c=>{
+        const b=el('button','choice'+(S.memo[no]===c?' on':''), esc(c));
+        b.onclick=()=>{ S.memo[no] = (S.memo[no]===c ? '' : c); save(); render(); };
+        row.appendChild(b);
+      });
+      w.appendChild(row);
+    }
+    q.appendChild(w);
+  });
+  return q;
+}
+
+/* 설문 한 묶음 + 그 묶음 전용 이동 버튼을 그립니다.
+   화면 아래쪽 [다음 단계 →] 는 「단계」 이동, 여기 버튼은 「문항 묶음」 이동입니다. */
+function surveyBlock(B, F, code){
+  const stt = S[F.sent][code];
+  /* 보낸 뒤에 답을 고쳤는지 — 보낼 때 남겨 둔 사본과 비교합니다 */
+  const nowSig  = JSON.stringify(S[F.ans][code]||{});
+  const sentSig = (S.sig||{})[F.ans+code];
+  const changed = !!(stt && stt!=='실패' && sentSig!==undefined && nowSig!==sentSig);
+  if(changed)
+    B.appendChild(el('div','sendbar bad','제출한 뒤에 답을 고치셨습니다. 아래 <b>수정본 다시 제출</b> 을 눌러야 반영됩니다. 누르지 않으면 처음 보낸 답이 그대로 남습니다.'));
+  else if(stt && stt!=='실패')
+    B.appendChild(el('div','sendbar','이 설문의 응답은 저장되었습니다. 아래 <b>다음 단계 →</b> 로 넘어가시면 됩니다.'));
+  else if(stt==='실패')
+    B.appendChild(el('div','sendbar bad','응답을 보내지 못했습니다. 인터넷 연결을 확인한 뒤 <b>답변 제출</b> 을 한 번 더 눌러 주세요. (답은 앱에 저장돼 있습니다)'));
+  const need = (S.need===F.name+code);
+  const gi = Math.min(S.sub, F.groups.length-1);
+  /* 묶음을 넘겼을 때 자극 이미지가 화면을 채우고 문항은 화면 밖으로 내려가도록
+     빈 공간을 넣습니다. 높이는 render 뒤에 fitSpace()가 화면 크기에 맞춰 정합니다. */
+  const sbw = B.querySelector('.sbwrap');
+  if(gi>0 && sbw){
+    B.appendChild(el('div','vspace'));
+    /* 문항만 바뀌고 자극은 그대로라는 것을 그림 바로 위에 알려 줍니다 */
+    if(!sbw.querySelector('.samimg')){
+      const note=el('div','samimg');
+      note.innerHTML='앞 문항에서 보신 것과 <b>같은 이미지</b>입니다. 자극은 바뀌지 않았습니다.';
+      sbw.insertBefore(note, sbw.firstChild);
+    }
+  }
+  const box = groupBox(F, code, gi, need);
+
+  const nav = el('div','gnav');
+  const prev = el('button',null,'← 이전 문항');
+  prev.disabled = gi===0;
+  prev.onclick = ()=>{ S.sub=gi-1; render(); };
+  const last = gi===F.groups.length-1;
+  const doneOk = !!(stt && stt!=='실패');
+  const next = el('button','main',
+      !last ? '다음 문항 →' : (changed ? '수정본 다시 제출' : (doneOk ? '제출 완료' : '답변 제출')));
+  next.onclick = ()=>{
+    if(!evalDone(F, code, gi)){ S.need=F.name+code; render(); return; }
+    if(!last){ S.sub=gi+1; render(); return; }
+    if(doneOk && !changed){ render(); return; }
+    next.disabled=true; next.textContent='보내는 중…';
+    sendEval(F, code).then(ok=>{
+      /* 보내고 나면 곧바로 다음 단계로 넘어갑니다.
+         실패했으면 그 자리에 남아 빨간 안내를 띄우고 다시 누를 수 있게 합니다 */
+      if(ok && S.i < S.steps.length-1) go(S.i+1);
+      else render();
+    });
+  };
+  const hint = el('span','hint', last ? '' : `${gi+1} / ${F.groups.length}`);
+  nav.appendChild(prev); nav.appendChild(el('span','sp')); nav.appendChild(hint); nav.appendChild(next);
+  box.appendChild(nav);
+  B.appendChild(box);
+  S.need=null;
+  return need;
+}
+/* 자극 이미지가 화면을 꽉 채우도록 여백 높이를 맞추고, 이미지 맨 위로 올립니다.
+   이미지가 늦게 뜨면 크기가 바뀌므로 이미지 로딩이 끝날 때마다 다시 부릅니다. */
+function fitSpace(){
+  const m=$('#main'); if(!m) return;
+  const sb=m.querySelector('.sbwrap'); if(!sb) return;
+  const bar=m.querySelector('#topbar');                 /* 위에 붙어 있는 머리띠 */
+  const barH=bar ? bar.getBoundingClientRect().height : 0;
+  const sp=m.querySelector('.vspace');
+  if(sp){
+    const h=Math.max(0, m.clientHeight - barH - sb.getBoundingClientRect().height - 8);
+    sp.style.height=h+'px';
+  }
+  /* 머리띠가 이미지 첫 줄을 가리지 않도록 그만큼 덜 내립니다 */
+  const top = sb.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop - barH;
+  m.scrollTop = Math.max(0, top);
+}
+window.addEventListener('resize', ()=>{ const m=$('#main'); if(m && m.querySelector('.vspace')) fitSpace(); });
+
+/* 답을 고를 때마다 이동 버튼 상태만 갱신합니다 (화면을 다시 그리지 않습니다) */
+function refreshGnav(){
+  const st=S.steps[S.i]; if(!IS_SURVEY(st)) return;
+  const F=fFor(st), code=codeOf(st), gi=Math.min(S.sub,F.groups.length-1);
+  const b=document.querySelector('.gnav button.main');
+  if(b && !/보내는/.test(b.textContent)) b.disabled=false;
+
+  /* 이미 보낸 설문에서 답을 고치면 그 자리에서 버튼 이름과 안내를 바꿔 줍니다 */
+  const stt=S[F.sent][code], doneOk=!!(stt && stt!=='실패');
+  const sentSig=(S.sig||{})[F.ans+code];
+  const changed = doneOk && sentSig!==undefined && JSON.stringify(S[F.ans][code]||{})!==sentSig;
+  const last = gi===F.groups.length-1;
+  if(b && last && !/보내는/.test(b.textContent))
+    b.textContent = changed ? '수정본 다시 제출' : (doneOk ? '제출 완료' : '답변 제출');
+  const bar=document.querySelector('.sendbar');
+  if(bar && doneOk){
+    bar.className = changed ? 'sendbar bad' : 'sendbar';
+    bar.innerHTML = changed
+      ? '제출한 뒤에 답을 고치셨습니다. 아래 <b>수정본 다시 제출</b> 을 눌러야 반영됩니다. 누르지 않으면 처음 보낸 답이 그대로 남습니다.'
+      : '이 설문의 응답은 저장되었습니다. 아래 <b>다음 단계 →</b> 로 넘어가시면 됩니다.';
+  }
+  const nb=$('#btnNext');
+  if(nb) nb.disabled = !doneOk || S.i===S.steps.length-1;
+}
+
+/* ═══════════ 렌더 ═══════════ */
+function render(){
+  const st=S.steps[S.i], B=$('#body'); B.innerHTML='';
+  let needMark=false;
+  $('#tTag').textContent=S.i+1;
+  $('#tTitle').textContent=st.t;
+  $('#tProg').textContent=`${S.i+1} / ${S.steps.length}`;
+  $('#pbar').style.width=((S.i)/(S.steps.length-1)*100)+'%';
+  renderSide();
+
+  if(st.k==='form'){
+    B.appendChild(el('p','lead','사전 설문'));
+    B.appendChild(el('div','desc','기본 정보와 로봇에 대한 평소 생각을 여쭤보는 설문입니다. 정답은 없습니다.'));
+    needMark = surveyBlock(B, F_BASE, '_base');
+  }
+  else if(st.k==='ctxintro'){
+    const c=CTX[st.ctx];
+    B.appendChild(el('p','lead',c.name));
+    B.appendChild(povBar(st.ctx));
+    B.appendChild(el('div','desc', c.desc+'<br><br>오늘은 <b>네 가지 상황</b>을 보시고, 각 상황마다 <b>두 가지 움직임</b>을 연달아 보시게 됩니다. 자료는 모두 <b>여덟 개</b>입니다. 하나를 볼 때마다 짧은 설문에 답하시면 됩니다.'));
+  }
+  else if(st.k==='stim'){
+    B.appendChild(el('p','lead',`${st.code}  ·  ${SIT[st.n].name}`));
+    B.appendChild(povBar(SIT[st.n].ctx));
+    B.appendChild(el('div','desc', SIT[st.n].desc+
+      '<br><br>여섯 장을 <b>1번부터 6번까지 순서대로 이어서</b>, 하나의 움직임으로 떠올려 주세요. 그림을 누르면 크게 볼 수 있습니다.'));
+    B.appendChild(storyboard(st.n,st.m,st.code));
+    needMark = surveyBlock(B, F_EVAL, st.code);
+  }
+  else if(st.k==='datacheck'){
+    B.appendChild(el('p','lead','잠시 쉬어 갑니다'));
+    B.appendChild(el('div','desc','여기까지가 절반입니다. <b>2~3분 쉬었다가</b> 이어서 하겠습니다.<br>물 한 잔 드시거나 잠깐 다녀오셔도 됩니다.'));
+  }
+  else if(st.k==='recheck'){
+    B.appendChild(el('p','lead',`${st.code}  ·  ${SIT[st.n].name} 다시 보기`));
+    B.appendChild(povBar(SIT[st.n].ctx));
+    B.appendChild(el('div','desc',MC_INTRO));
+    B.appendChild(storyboard(st.n,st.m,st.code));
+    needMark = surveyBlock(B, F_MC, st.code);
+  }
+  else if(st.k==='sitiv'){
+    B.appendChild(el('p','lead',`${SIT[st.n].name} 인터뷰`));
+    B.appendChild(povBar(SIT[st.n].ctx));
+    B.appendChild(el('div','desc',
+      `방금 <b>${SIT[st.n].name}</b> 두 가지를 다시 보셨습니다. 아래 자료를 보면서 답해 주세요.<br>`+
+      `<b>진행자가 질문을 드립니다. 화면의 질문을 보시면서 응답하면서 말씀해 주시면 됩니다.</b><br>`+
+      `번호는 직접 눌러서 골라 주세요.<br>`+
+      `<span style="color:var(--mut);font-size:13.5px">버튼은 위에 보이는 자료와 같은 순서입니다. 그림을 누르면 크게 보입니다.</span>`));
+    codesOfSit(st.n).forEach(code=>B.appendChild(miniSb(st.n,code[2],code,`${code} — ${SIT[st.n].name}`)));
+    B.appendChild(qBlock(IV_SIT[st.n], codesOfSit(st.n)));
+  }
+  else if(st.k==='final'){
+    B.appendChild(el('p','lead','종합 질문'));
+    B.appendChild(el('div','desc','마지막 두 문항입니다. 진행자가 질문을 드립니다. 오늘 보신 것 전체를 떠올리며 <b>응답하면서 말씀해 주시면 됩니다.</b>'));
+    B.appendChild(qBlock(FINAL));
+  }
+
+  $('#btnPrev').disabled = S.i===0;
+  { const F = IS_SURVEY(st) ? fFor(st) : null;
+    const sentOk = F ? (S[F.sent][codeOf(st)] && S[F.sent][codeOf(st)]!=='실패') : true;
+    const nb=$('#btnNext');
+    nb.textContent = '다음 단계 →';
+    nb.disabled = S.i===S.steps.length-1 || !sentOk;
+    nb.title = sentOk ? '' : '설문을 마치고 「답변 제출」을 누르면 열립니다'; }
+  $('#main').scrollTop=0;
+  /* 문항 묶음을 넘기면 자극 이미지가 화면을 채우도록 올려 줍니다.
+     (0819 미팅 — 묶음마다 같은 자극을 한 번씩 다시 보게 하기 위함)
+     빠뜨린 문항이 있어 빨간 표시가 뜬 때만 문항 위치로 내려 줍니다. */
+  if(IS_SURVEY(st) && (S.sub>0 || needMark)){
+    if(needMark){ const g=B.querySelector('.grp'); if(g) g.scrollIntoView({block:'start'}); }
+    else fitSpace();
+  }
+  save();
+}
+
+function renderSide(){
+  const box=$('#steps'); box.innerHTML=''; let g=null;
+  S.steps.forEach((st,i)=>{
+    if(st.g!==g){ g=st.g; box.appendChild(el('div','grouphdr',esc(g))); }
+    const t=S.times[i], dur = t&&t.ms ? `<span class="t">${hhmm(t.ms)}</span>` : '';
+    const d=el('div','stepitem'+(i<S.i?' done':'')+(i===S.i?' cur':''),
+      `<span class="dot"></span>${esc(st.t)}${dur}`);
+    d.onclick=()=>go(i);
+    box.appendChild(d);
+  });
+  const cur=box.querySelector('.cur'); if(cur) cur.scrollIntoView({block:'nearest'});
+}
+
+/* ═══════════ 이동 · 시간 ═══════════ */
+function markLeave(){
+  if(S.cur0==null) return;
+  const ms = Date.now()-S.cur0;
+  const prev = S.times[S.i] || {};
+  S.times[S.i] = { start: prev.start || new Date(S.cur0).toISOString(), ms: (prev.ms||0)+ms,
+                   end: new Date().toISOString() };
+}
+function go(i){
+  if(i===S.i) return;
+  markLeave(); S.i=i; S.cur0=Date.now();
+  /* 자극별 평가로 들어가면 아직 안 답한 첫 묶음부터 보여줍니다 */
+  S.sub=0;
+  const nx=S.steps[i];
+  if(IS_SURVEY(nx)){
+    const F=fFor(nx), cd=codeOf(nx);
+    for(let g=0; g<F.groups.length; g++){ if(!evalDone(F,cd,g)){ S.sub=g; break; } }
+  }
+  if(!S.times[S.i]) S.times[S.i]={start:new Date().toISOString(), ms:0};
+  render();
+}
+function tickClock(){}
+
+/* ═══════════ 저장 ═══════════ */
+function save(){
+  if(!S.pid) return;
+  markLeave(); S.cur0=Date.now();
+  store('rx_'+S.pid, {name:S.name,i:S.i,memo:S.memo,checks:S.checks,ticks:S.ticks,times:S.times,t0:S.t0,
+                      ans:S.ans, sent:S.sent, ans2:S.ans2, sent2:S.sent2, ans0:S.ans0, sent0:S.sent0,
+                      sig:S.sig});
+  store('rx_cfg2', {forms:S.forms, imgdir:S.imgdir});
+}
+
+/* ═══════════ 사전 점검 ═══════════ */
+function setChk(id, state, res){
+  const e=$('#'+id); e.className='chk '+state;
+  e.querySelector('.ico').textContent = state==='ok'?'✓':state==='bad'?'!':'·';
+  e.querySelector('.res').textContent = res;
+}
+function preflight(){
+  const dir=$('#imgdir').value.trim().replace(/\/$/,'')||'IMAGE';
+  setChk('pf_img','run','검사 중…');
+  const all=[]; [1,2,3,4].forEach(n=>['A','B'].forEach(m=>{for(let i=1;i<=6;i++) all.push([n,m,i]);}));
+  if(IMGMAP){
+    const bad=all.map(([n,m,i])=>imgName(n,m,i)).filter(f=>!IMGMAP[f]);
+    if(!bad.length){ setChk('pf_img','ok','48장 모두 확인 · 직접 선택한 폴더'); $('#pfMsg').textContent=''; }
+    else { setChk('pf_img','bad',`${bad.length}장 없음 · ${bad.slice(0,3).join(', ')}${bad.length>3?' 외':''}`);
+           $('#pfMsg').textContent='고르신 폴더에 그 파일들이 없습니다'; }
+    return preflightForms();
+  }
+  let done=0, bad=[];
+  all.forEach(([n,m,i])=>{
+    const src=`${dir}/${imgName(n,m,i)}`, im=new Image();
+    im.onload=im.onerror=function(ev){
+      if(ev.type==='error') bad.push(imgName(n,m,i));
+      if(++done===all.length){
+        if(bad.length===0){ setChk('pf_img','ok','48장 모두 확인'); $('#pfMsg').textContent=''; }
+        else{
+          setChk('pf_img','bad',`${bad.length}장 없음 · ${bad.slice(0,3).join(', ')}${bad.length>3?' 외':''}`);
+          let tried=''; try{ tried=new URL(`${dir}/${imgName(1,'A',1)}`, location.href).href; }catch(e){ tried=dir; }
+          $('#pfMsg').textContent = `찾은 위치: ${decodeURI(tried)} — 없으면 「이미지 폴더 직접 선택」을 누르세요`;
+        }
+      }
+    };
+    im.src=src;
+  });
+  preflightForms();
+}
+function preflightForms(){
+  [['base','pf_base',null],['eval','pf_eval','1-A'],['mc','pf_mc','1-A']].forEach(([k,id,code])=>{
+    const raw=$('#f_'+k).value.trim();
+    if(!raw){ setChk(id,'bad','주소 없음'); return; }
+    if(!/docs\.google\.com\/forms/.test(raw)){ setChk(id,'bad','구글폼 주소가 아닙니다'); return; }
+    const r=buildFormUrl(raw,code,'P01');
+    if(!code){ setChk(id,'ok','주소 확인'); return; }
+    if(r.filled>=1) setChk(id,'ok','번호 자동 입력됨');
+    else setChk(id,'bad','번호를 못 찾음 · 미리 채워진 링크인지 확인');
+  });
+}
+
+/* ═══════════ 내보내기 ═══════════ */
+function exportLog(){
+  const L=[];
+  L.push('실험 진행 기록');
+  L.push('참가자  '+S.pid+(S.name?' · '+S.name:''));
+  L.push('제시 순서  '+ORDER[S.pid].seq.join(' · '));
+  L.push('재시청 순서  '+ORDER[S.pid].iv);
+  if(S.t0){ const d=new Date(S.t0); L.push('시작  '+d.toLocaleString('ko-KR')); }
+  L.push('총 경과  '+(S.t0?hhmm(Date.now()-S.t0):'-'));
+  L.push(''); L.push('─'.repeat(60)); L.push('');
+  L.push('[ 단계별 소요 ]'); L.push('');
+  L.push('단계'.padEnd(4)+'  '+'내용'.padEnd(30)+'  시작        소요');
+  S.steps.forEach((st,i)=>{
+    const t=S.times[i];
+    const s=t&&t.start? stamp(new Date(t.start)) : '-';
+    const d=t&&t.ms? hhmm(t.ms) : '-';
+    L.push(String(i+1).padStart(2)+'    '+st.t.padEnd(30)+'  '+s.padEnd(10)+'  '+d);
+  });
+  /* 구글폼 제출이 실패했을 때를 대비한 백업본 (CSV 로 붙여넣기 좋게) */
+  [F_BASE, F_EVAL, F_MC].forEach(F=>{
+    L.push(''); L.push('─'.repeat(60)); L.push('');
+    L.push('[ '+F.name+' 응답 백업 ]');
+    L.push('구글폼에 이미 들어가 있습니다. 아래는 만약을 대비한 사본입니다.');
+    L.push('');
+    L.push(['참가자','자료','보냄'].concat(
+      F.groups.reduce((a,g)=>a.concat(g.q.map(q=>q[0])),[])).join(','));
+    const codes = F.code ? ORDER[S.pid].seq : ['_base'];
+    codes.forEach(code=>{
+      const a=S[F.ans][code]; if(!a) return;
+      L.push([S.pid, (F.code?code:'-'), (S[F.sent][code]||'안 보냄')].concat(
+        F.keys.map(k=>(a[k]||'').toString().replace(/,/g,' '))).join(','));
+    });
+  });
+
+  L.push(''); L.push('─'.repeat(60)); L.push('');
+  L.push('[ 인터뷰 A/B 선택 ]');
+  L.push('서술형 답은 녹음에 있습니다. 이 파일에는 참가자가 누른 선택만 남습니다.');
+  L.push('');
+  const QT={};
+  [].concat(IV_SIT[1],IV_SIT[2],IV_SIT[3],IV_SIT[4],FINAL).forEach(([no,t])=>QT[no]=no+'. '+t);
+  const ord=[].concat(IV_SIT[1].map(q=>q[0]),IV_SIT[2].map(q=>q[0]),
+    IV_SIT[3].map(q=>q[0]),IV_SIT[4].map(q=>q[0]),FINAL.map(q=>q[0]));
+  let picked=0;
+  ord.forEach(k=>{ if(!S.memo[k]||!S.memo[k].trim()) return;
+    picked++;
+    L.push(QT[k]||k); L.push('  → '+S.memo[k].trim()); L.push(''); });
+  if(!picked) L.push('(선택된 항목 없음)');
+  const blob=new Blob([L.join('\n')],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`진행기록_${S.pid}.txt`; a.click();
+}
+
+/* ═══════════ 시작 ═══════════ */
+function begin(resume){
+  const pid=(function(v){ v=(v||'').trim().toUpperCase().replace(/\s+/g,'');
+    if(/^\d{1,2}$/.test(v)) v='P'+v; const m=v.match(/^P(\d{1,2})$/); if(!m) return '';
+    const q='P'+String(+m[1]).padStart(2,'0'); return ORDER[q]?q:''; })($('#pid').value);
+  if(!pid){ alert('참가자 번호를 P01 ~ P32 형식으로 입력해 주세요.'); $('#pid').focus(); return; }
+  $('#pid').value=pid;
+  S.pid=pid; S.name=$('#pname').value;
+  S.imgdir=$('#imgdir').value.trim().replace(/\/$/,'')||'IMAGE';
+  if(S.imgdir.charAt(0)==='(') S.imgdir='IMAGE';   // 직접 선택 표시는 경로가 아님
+  S.forms={base:$('#f_base').value, eval:$('#f_eval').value, mc:$('#f_mc').value};
+  S.steps=buildSteps(pid);
+  S.i=0; S.memo={}; S.checks={}; S.ticks={}; S.times={}; S.t0=Date.now();
+  S.ans={}; S.sent={}; S.ans2={}; S.sent2={}; S.ans0={}; S.sent0={}; S.sig={}; S.sub=0; S.need=null;
+  if(resume){ const p=store('rx_'+pid); if(p){
+    S.i=Math.min(p.i||0,S.steps.length-1); S.memo=p.memo||{}; S.checks=p.checks||{};
+    S.ticks=p.ticks||{}; S.times=p.times||{}; S.t0=p.t0||Date.now(); if(p.name)S.name=p.name;
+    S.ans=p.ans||{}; S.sent=p.sent||{}; S.ans2=p.ans2||{}; S.sent2=p.sent2||{};
+    S.ans0=p.ans0||{}; S.sent0=p.sent0||{}; S.sig=p.sig||{}; } }
+  S.cur0=Date.now();
+  if(!S.times[S.i]) S.times[S.i]={start:new Date().toISOString(),ms:0};
+  $('#setup').style.display='none'; $('#run').classList.add('on');
+  $('#sPid').textContent=pid+(S.name?'  ·  '+S.name:'');
+  $('#sSeq').textContent=ORDER[pid].seq.join(' · ');
+  if(clockTimer) clearInterval(clockTimer);
+  clockTimer=setInterval(tickClock,1000); tickClock();
+  render();
+}
+
+/* ═══════════ 초기화 ═══════════ */
+(function(){
+  const sel=$('#pid');
+  { const o0=el('option'); o0.value=''; o0.textContent='— 선택 —'; sel.appendChild(o0); }
+  { const o=el('option'); o.value='P00'; o.textContent='P00 — 연습 · 시험용 (실제 참가자 아님)';
+    sel.appendChild(o); }
+  Object.keys(ORDER).forEach(p=>{ if(p==='P00') return;
+    const o=el('option'); o.value=p; o.textContent=p; sel.appendChild(o); });
+  function loadForms(src){ $('#f_base').value=src.base||''; $('#f_eval').value=src.eval||''; $('#f_mc').value=src.mc||''; }
+  const cfg=store('rx_cfg2');
+  loadForms((cfg&&cfg.forms&&cfg.forms.eval)?cfg.forms:DEFAULT_FORMS);
+  if(cfg&&cfg.imgdir) $('#imgdir').value=cfg.imgdir;
+  $('#btnDef').onclick=()=>{ loadForms(DEFAULT_FORMS); preflight(); };
+  /* 진행 기록 전체 지우기 — P01~P32 저장분을 모두 삭제합니다.
+     폼 주소·이미지 폴더 설정(rx_cfg2)은 남깁니다 (그건 「기본값으로 되돌리기」로 처리) */
+  function savedPids(){
+    const out=[];
+    try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i);
+           if(k && k.indexOf('rx_')===0 && k!=='rx_cfg2') out.push(k.slice(3)); } }catch(e){}
+    return out.sort();
+  }
+  /* 저장된 기록 하나를 S 에 얹어 txt 로 뽑습니다. 실험 진행 중에는 쓰지 않습니다. */
+  function exportSaved(pid){
+    const p=store('rx_'+pid); if(!p) return;
+    const keep=JSON.parse(JSON.stringify({pid:S.pid,name:S.name,steps:S.steps,i:S.i,memo:S.memo,
+      checks:S.checks,ticks:S.ticks,times:S.times,t0:S.t0,ans:S.ans,sent:S.sent,
+      ans2:S.ans2,sent2:S.sent2,ans0:S.ans0,sent0:S.sent0}));
+    S.pid=pid; S.name=p.name||''; S.steps=buildSteps(pid); S.i=p.i||0;
+    S.memo=p.memo||{}; S.checks=p.checks||{}; S.ticks=p.ticks||{}; S.times=p.times||{};
+    S.t0=p.t0||null; S.ans=p.ans||{}; S.sent=p.sent||{}; S.ans2=p.ans2||{};
+    S.sent2=p.sent2||{}; S.ans0=p.ans0||{}; S.sent0=p.sent0||{};
+    try{ exportLog(); } finally { Object.assign(S, keep); }
+  }
+  function drawRecList(){
+    const box=$('#recList'), pids=savedPids();
+    box.innerHTML='';
+    if(!pids.length){ box.innerHTML='<p class="help">저장된 진행 기록이 없습니다.</p>'; return; }
+    pids.forEach(pid=>{
+      const p=store('rx_'+pid)||{};
+      const steps=ORDER[pid]?buildSteps(pid).length:0;
+      const when=p.t0?new Date(p.t0).toLocaleString('ko-KR'):'-';
+      const row=el('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)';
+      const info=el('div'); info.style.cssText='flex:1;font-size:13px;line-height:1.5';
+      info.innerHTML=`<b>${pid}</b>${p.name?' · '+p.name:''}`
+        +`<span style="color:var(--mut)">　${(p.i||0)+1}${steps?' / '+steps:''}단계　·　시작 ${when}</span>`;
+      const bx=el('button','ghost sm','내보내기'); bx.style.cssText='font-size:11.5px;padding:5px 11px';
+      bx.onclick=()=>exportSaved(pid);
+      const bd=el('button','ghost sm','지우기'); bd.style.cssText='font-size:11.5px;padding:5px 11px;color:#C0392B';
+      bd.onclick=()=>{
+        if(!confirm(`${pid} 의 진행 기록을 이 앱에서 지웁니다.\n\n구글 스프레드시트에 이미 들어간 응답은 그대로 남습니다.\n그 줄은 스프레드시트에서 직접 지우셔야 합니다.\n\n지울까요?`)) return;
+        try{ localStorage.removeItem('rx_'+pid); }catch(e){}
+        $('#resetMsg').textContent=`${pid} 의 진행 기록을 지웠습니다. (스프레드시트 응답은 그대로입니다)`;
+        drawRecList(); prev();
+      };
+      row.appendChild(info); row.appendChild(bx); row.appendChild(bd);
+      box.appendChild(row);
+    });
+    const all=el('div'); all.style.cssText='padding-top:12px;border-top:1px solid var(--line);margin-top:4px';
+    const ba=el('button','ghost sm',`전체 지우기 (${pids.length}건)`);
+    ba.style.cssText='font-size:11.5px;padding:5px 11px;color:#C0392B';
+    ba.onclick=()=>{
+      if(!confirm(`저장된 진행 기록 ${pids.length}건을 모두 지웁니다.\n\n${pids.join(', ')}\n\n되돌릴 수 없습니다. 지울까요?`)) return;
+      pids.forEach(pid=>{ try{ localStorage.removeItem('rx_'+pid); }catch(e){} });
+      $('#resetMsg').textContent=`진행 기록 ${pids.length}건을 지웠습니다. (${pids.join(', ')})`;
+      drawRecList(); prev();
+    };
+    all.appendChild(ba); box.appendChild(all);
+  }
+  $('#btnReset').onclick=()=>{
+    const pn=$('#recPanel'); pn.classList.toggle('hide');
+    if(!pn.classList.contains('hide')){ drawRecList();
+      setTimeout(()=>pn.scrollIntoView({behavior:'smooth',block:'nearest'}),60); }
+  };
+  /* 시험 제출 — 「움직임 설문 (1)」에 P00 / 9-Z 로 한 줄 보냅니다.
+     스프레드시트에 그 행이 생기면 앱 내장 설문이 제대로 연결된 것입니다.
+     확인한 뒤 그 행은 지우십시오. */
+  $('#btnTest').onclick=()=>{
+    const m=$('#resetMsg'); m.textContent='보내는 중…';
+    const one = F => { const b=new URLSearchParams();
+      b.append(F.pid,'P00'); if(F.code) b.append(F.code,'1-A');
+      F.keys.forEach((k,i)=>{
+        if(F===F_BASE){ b.append(k, i===0?'테스트':(i===1?'남성':(i===2?'0':(i===3?'예':'3')))); }
+        else b.append(k, String(F.groups[0].scale===5 || i>=9 ? 3 : 4)); });
+      b.append('fvv','1'); b.append('draftResponse','[]');
+      b.append('pageHistory',F.pages); b.append('fbzx','0');
+      return fetch(F.post,{method:'POST',mode:'no-cors',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b.toString()}); };
+    Promise.all([one(F_BASE), one(F_EVAL), one(F_MC)])
+      .then(()=>{ m.innerHTML='세 설문에 시험 응답을 보냈습니다 — <b>참가자 P00</b>. '
+        +'사전 설문 · 움직임 설문 (1) · (2) 스프레드시트 세 곳에 그 행이 생겼는지 확인해 주세요. '
+        +'<b>확인 후 그 행은 지우십시오.</b>'; })
+      .catch(()=>{ m.textContent='보내지 못했습니다. 인터넷 연결을 확인해 주세요.'; });
+  };
+  setTimeout(preflight, 350);
+  function normPid(v){
+    v=(v||'').trim().toUpperCase().replace(/\s+/g,'');
+    if(/^\d{1,2}$/.test(v)) v='P'+v;
+    const m=v.match(/^P(\d{1,2})$/); if(!m) return '';
+    const n=+m[1]; return ORDER['P'+String(n).padStart(2,'0')] ? 'P'+String(n).padStart(2,'0') : '';
+  }
+  function prev(){
+    const p=normPid(sel.value), b=$('#preview'), sv=p?store('rx_'+p):null;
+    $('#btnResume').disabled=!sv;
+    $('#btnStart').disabled=!p;
+    if(!p){ if(sel.value.trim()){ b.classList.remove('hide');
+        b.innerHTML='P01 ~ P32 사이의 번호를 입력해 주세요.'; } else b.classList.add('hide');
+      return; }
+    const warn = (p==='P00')
+      ? `<br><span style="color:#C0392B">연습·시험용 번호입니다. 응답은 구글 시트에 <b>P00</b> 으로 쌓이니, `
+        +`끝난 뒤 시트 세 곳에서 P00 행을 지우고 앱에서도 「진행 기록 관리」로 지우십시오.</span>` : '';
+    if(sv){ b.classList.remove('hide');
+      b.innerHTML=`<b>${p}</b> — 진행하던 기록이 있습니다 (${(sv.i||0)+1}단계). 이어서 진행하시겠습니까?`+warn; }
+    else { b.classList.remove('hide');
+      b.innerHTML=`<b>${p}</b> — 제시 순서 ${ORDER[p].seq.join(' · ')}`+warn; }
+  }
+  sel.onchange=prev; prev();
+  $('#btnPre').onclick=preflight;
+  $('#btnPick').onclick=()=>$('#imgpick').click();
+  $('#imgpick').onchange=e=>{
+    const fs=Array.from(e.target.files||[]);
+    if(!fs.length) return;
+    if(IMGMAP) Object.values(IMGMAP).forEach(u=>{ try{ URL.revokeObjectURL(u); }catch(err){} });
+    IMGMAP={};
+    fs.forEach(f=>{ if(/\.png$/i.test(f.name)) IMGMAP[f.name]=URL.createObjectURL(f); });
+    $('#imgdir').value='(직접 선택한 폴더)';
+    preflight();
+  };
+  $('#btnAdv').onclick=e=>{ e.preventDefault(); const a=$('#adv');
+    a.classList.toggle('hide');
+    if(!a.classList.contains('hide')) setTimeout(()=>a.scrollIntoView({behavior:'smooth'}),60); };
+  $('#btnStart').onclick=()=>begin(false);
+  $('#btnResume').onclick=()=>begin(true);
+  const isSurvey = IS_SURVEY;
+  $('#btnPrev').onclick=()=>{ if(S.i>0) go(S.i-1); };
+  $('#btnNext').onclick=()=>{ if(S.i<S.steps.length-1) go(S.i+1); };
+  $('#btnExport').onclick=exportLog;
+  $('#btnP').onclick=()=>document.body.classList.toggle('pmode');
+  $('#btnExit').onclick=()=>{ save(); if(clockTimer)clearInterval(clockTimer);
+    $('#run').classList.remove('on'); document.body.classList.remove('pmode'); $('#setup').style.display=''; };
+  $('#lbX').onclick=()=>$('#lb').classList.remove('on');
+  $('#lbL').onclick=e=>{ e.stopPropagation(); lbStep(-1); };
+  $('#lbR').onclick=e=>{ e.stopPropagation(); lbStep(1); };
+  $('#lb').onclick=e=>{ if(e.target.id==='lb'||e.target.id==='lbImg') $('#lb').classList.remove('on'); };
+  document.addEventListener('keydown',e=>{
+    if($('#lb').classList.contains('on')){
+      if(e.key==='Escape') $('#lb').classList.remove('on');
+      if(e.key==='ArrowLeft') lbStep(-1);
+      if(e.key==='ArrowRight') lbStep(1);
+      return;
+    }
+    if(!$('#run').classList.contains('on')) return;
+    if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+    if(e.key==='ArrowRight'){ e.preventDefault(); $('#btnNext').click(); }
+    if(e.key==='ArrowLeft'){ e.preventDefault(); $('#btnPrev').click(); }
+    if(e.key==='f'||e.key==='F'){ $('#btnP').click(); }
+    if(/^[1-6]$/.test(e.key)){
+      const st=S.steps[S.i];
+      if(st&&(st.k==='stim'||st.k==='recheck')) openLb(st.n,st.m,st.code,+e.key);
+    }
+  });
+  window.addEventListener('beforeunload',save);
+})();
+</script>
+</body>
+</html>
