@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>실험 진행 앱 · 가정용 휴머노이드 로봇 모션</title>
+<title>HRI 모션 연구 · 실험 진행</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232B3947'/%3E%3Ccircle cx='32' cy='14' r='4.6' fill='%23fff'/%3E%3Crect x='19' y='24' width='26' height='20' rx='6' fill='%23fff'/%3E%3Ccircle cx='26.5' cy='33' r='2.6' fill='%232B3947'/%3E%3Ccircle cx='37.5' cy='33' r='2.6' fill='%232B3947'/%3E%3Crect x='11' y='27' width='5' height='13' rx='2.5' fill='%23fff'/%3E%3Crect x='48' y='27' width='5' height='13' rx='2.5' fill='%23fff'/%3E%3Crect x='24' y='48' width='16' height='4.5' rx='2.2' fill='%23fff'/%3E%3C/svg%3E">
 <style>
 :root{
   --navy:#2B3947; --ink:#1E2933; --accent:#5B8CA8; --accent-d:#47738C;
@@ -302,8 +303,8 @@ body.pmode .pflag{display:block}
 
   <p style="margin:22px 0 0;padding:11px 14px;border-radius:8px;background:#EDF3F8;
      color:#4A7C99;font-size:13px;line-height:1.7">
-    앱 버전 <b>2026-08-21 d</b> &nbsp;·&nbsp; 캡션 48개 (0821 회의 반영) &nbsp;·&nbsp;
-    NARS 「나는」 주어 &nbsp;·&nbsp; 연습용 <b>P00</b> 번호 &nbsp;·&nbsp; 문항을 넘겨도 같은 이미지임을 안내 &nbsp;·&nbsp;
+    앱 버전 <b>2026-08-24</b> &nbsp;·&nbsp; 캡션 48개 (0821 회의 반영) &nbsp;·&nbsp;
+    이미지 닫기 ✕ 버튼 &nbsp;·&nbsp; 그림 폴더 자동 인식 &nbsp;·&nbsp; 연습용 <b>P00</b> 번호 &nbsp;·&nbsp;
     「진행 기록 관리」에서 참가자 한 명만 지우기<br>
     <span style="color:#8B98A4">이 줄이 안 보이면 예전 파일을 열고 계신 것입니다.</span>
   </p>
@@ -619,7 +620,27 @@ const sitsOfCtx = ctx => { const o=[]; ORDER[S.pid].seq.forEach(c=>{const n=+c[0
 /* ═══════════ 조각 ═══════════ */
 let IMGMAP = null;   // 폴더를 직접 고른 경우 { 'S1_HL_01.png': blob:… }
 const imgName = (n,m,i) => `S${n}_${MOTION[m]}_0${i}.png`;
-const imgSrc = (n,m,i) => (IMGMAP && IMGMAP[imgName(n,m,i)]) || `${S.imgdir}/${imgName(n,m,i)}`;
+/* 그림 경로. 보통은  IMAGE/S1_HL_01.png  이지만, 깃허브에 올릴 때 상황별
+   폴더(1/IMAGE, 2/IMAGE …) 로 올라간 경우도 자동으로 찾아냅니다.
+   시작할 때 한 장을 시험 삼아 불러 보고 되는 쪽으로 정합니다. */
+let IMGLAY = 'flat';                     // 'flat' | 'nested'
+const imgPath = (n,m,i) => IMGLAY==='nested'
+  ? `${n}/${S.imgdir}/${imgName(n,m,i)}`
+  : `${S.imgdir}/${imgName(n,m,i)}`;
+const imgSrc = (n,m,i) => (IMGMAP && IMGMAP[imgName(n,m,i)]) || imgPath(n,m,i);
+function probeLayout(){
+  return new Promise(done=>{
+    if(IMGMAP && Object.keys(IMGMAP).length) return done('flat');
+    const dir=(S.imgdir||'IMAGE'), f=imgName(1,'A',1);
+    const a=new Image();
+    a.onload =()=>{ IMGLAY='flat';   done('flat'); };
+    a.onerror=()=>{ const b=new Image();
+      b.onload =()=>{ IMGLAY='nested'; done('nested'); };
+      b.onerror=()=>{ IMGLAY='flat';   done('flat'); };
+      b.src=`1/${dir}/${f}`; };
+    a.src=`${dir}/${f}`;
+  });
+}
 
 function openLb(n,m,code,i){
   lbState={n,m,code,i};
@@ -1022,9 +1043,12 @@ function setChk(id, state, res){
   e.querySelector('.ico').textContent = state==='ok'?'✓':state==='bad'?'!':'·';
   e.querySelector('.res').textContent = res;
 }
-function preflight(){
+async function preflight(){
   const dir=$('#imgdir').value.trim().replace(/\/$/,'')||'IMAGE';
   setChk('pf_img','run','검사 중…');
+  if(!IMGMAP || !Object.keys(IMGMAP).length){
+    const before=S.imgdir; S.imgdir=dir; await probeLayout(); S.imgdir=before;
+  }
   const all=[]; [1,2,3,4].forEach(n=>['A','B'].forEach(m=>{for(let i=1;i<=6;i++) all.push([n,m,i]);}));
   if(IMGMAP){
     const bad=all.map(([n,m,i])=>imgName(n,m,i)).filter(f=>!IMGMAP[f]);
@@ -1035,14 +1059,14 @@ function preflight(){
   }
   let done=0, bad=[];
   all.forEach(([n,m,i])=>{
-    const src=`${dir}/${imgName(n,m,i)}`, im=new Image();
+    const src=(IMGLAY==='nested'?`${n}/${dir}/`:`${dir}/`)+imgName(n,m,i), im=new Image();
     im.onload=im.onerror=function(ev){
       if(ev.type==='error') bad.push(imgName(n,m,i));
       if(++done===all.length){
-        if(bad.length===0){ setChk('pf_img','ok','48장 모두 확인'); $('#pfMsg').textContent=''; }
+        if(bad.length===0){ setChk('pf_img','ok','48장 모두 확인'+(IMGLAY==='nested'?' · 상황별 폴더':'')); $('#pfMsg').textContent=''; }
         else{
           setChk('pf_img','bad',`${bad.length}장 없음 · ${bad.slice(0,3).join(', ')}${bad.length>3?' 외':''}`);
-          let tried=''; try{ tried=new URL(`${dir}/${imgName(1,'A',1)}`, location.href).href; }catch(e){ tried=dir; }
+          let tried=''; try{ tried=new URL(imgPath(1,'A',1), location.href).href; }catch(e){ tried=dir; }
           $('#pfMsg').textContent = `찾은 위치: ${decodeURI(tried)} — 없으면 「이미지 폴더 직접 선택」을 누르세요`;
         }
       }
