@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HRI 모션 연구 · 실험 진행</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232B3947'/%3E%3Ccircle cx='32' cy='14' r='4.6' fill='%23fff'/%3E%3Crect x='19' y='24' width='26' height='20' rx='6' fill='%23fff'/%3E%3Ccircle cx='26.5' cy='33' r='2.6' fill='%232B3947'/%3E%3Ccircle cx='37.5' cy='33' r='2.6' fill='%232B3947'/%3E%3Crect x='11' y='27' width='5' height='13' rx='2.5' fill='%23fff'/%3E%3Crect x='48' y='27' width='5' height='13' rx='2.5' fill='%23fff'/%3E%3Crect x='24' y='48' width='16' height='4.5' rx='2.2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E3EEF9'/%3E%3Ccircle cx='32' cy='14' r='4.6' fill='%232E6BA8'/%3E%3Crect x='30.7' y='16' width='2.6' height='7' fill='%232E6BA8'/%3E%3Crect x='19' y='24' width='26' height='20' rx='6' fill='%232E6BA8'/%3E%3Ccircle cx='26.5' cy='33' r='2.6' fill='%23E3EEF9'/%3E%3Ccircle cx='37.5' cy='33' r='2.6' fill='%23E3EEF9'/%3E%3Crect x='11' y='27' width='5' height='13' rx='2.5' fill='%232E6BA8'/%3E%3Crect x='48' y='27' width='5' height='13' rx='2.5' fill='%232E6BA8'/%3E%3Crect x='24' y='48' width='16' height='4.5' rx='2.2' fill='%232E6BA8'/%3E%3C/svg%3E">
 <style>
 :root{
   --navy:#2B3947; --ink:#1E2933; --accent:#5B8CA8; --accent-d:#47738C;
@@ -557,8 +557,10 @@ const IV_SIT = {
 /* 종합 질문 — 3-1·3-2 삭제, 아래 두 문항만 남김 (2026-08-11 랩미팅).
    「편안할 것 같나요」는 유도가 되므로 쓰지 않습니다. 「적절할 것 같나요」로 물으십시오. */
 const FINAL = [
-  ['3-1','오늘 실험을 쭉 해 보셨는데, 가정에 로봇이 들어온다고 했을 때 전반적으로 어떤 방식이 적절할 것 같나요? 아까 보셨던 A 방식과 B 방식이 있는데요.',''],
-  ['3-2','한 공간에 있지만 서로 마주치지 않는 상황은 어떨 것 같으세요? 아까는 같은 공간에서 로봇과 마주하는 상황이 있었고, 하나는 아예 집 밖에 있는 상황이었어요. 지금 여쭤보는 건 한 공간에 있는데 서로 마주치지는 않는 상황입니다. (예: 참가자님은 주방 식탁에 앉아 계시고, 로봇은 설거지를 하고 있는 상황)','']
+  ['3-1','가정에 로봇이 들어온다고 했을 때, 전반적으로 어떤 방식이 적절할 것 같나요? (A 방식 / B 방식)',''],
+  ['3-2','그렇게 생각하신 이유는 무엇인가요?',''],
+  ['3-3','한 공간에 있지만 서로 마주치지 않는 상황에서는 어떤 방식이 적절할 것 같나요? (예: 참가자님은 주방 식탁에 앉아 계시고, 로봇은 설거지를 하고 있는 상황)',''],
+  ['3-4','그렇게 생각하신 이유는 무엇인가요?','']
 ];
 
 /* ═══════════ 상태 ═══════════ */
@@ -660,7 +662,7 @@ function openLb(n,m,code,i){
   bindImg($('#lbImg'),n,m,i);
   $('#lbImg').style.display='';
   $('#lbImg').src=imgSrc(n,m,i);
-  $('#lbCap').innerHTML=`<b>${esc(code)} · ${i}번</b><br>${esc(caps[i-1]||'')}`;
+  $('#lbCap').innerHTML='';   /* 확대 이미지 아래 설명 문구는 표시하지 않습니다 */
   $('#lbNum').textContent=`${i} / 6   ·   좌우 화살표로 넘기고, ✕ 또는 Esc 로 닫습니다`;
   $('#lb').classList.add('on');
 }
@@ -846,7 +848,14 @@ function qBlock(items, codes){
       const row=el('div','choices');
       codes.forEach(c=>{
         const b=el('button','choice'+(S.memo[no]===c?' on':''), esc(c));
-        b.onclick=()=>{ S.memo[no] = (S.memo[no]===c ? '' : c); save(); render(); };
+        b.onclick=()=>{
+          S.memo[no] = (S.memo[no]===c ? '' : c); save();
+          /* 화면 전체를 다시 그리면 그림이 다시 뜨면서 화면이 튑니다.
+             선택 표시만 그 자리에서 바꿉니다 (2026-08-26) */
+          Array.prototype.forEach.call(row.children, x=>{
+            x.classList.toggle('on', x.textContent === S.memo[no]);
+          });
+        };
         row.appendChild(b);
       });
       w.appendChild(row);
