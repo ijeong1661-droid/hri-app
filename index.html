@@ -116,10 +116,14 @@ code{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:.9em;
 /* 스토리보드 */
 .sbwrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;
   margin-bottom:24px;box-shadow:var(--shadow)}
-/* 같은 자극 안에서 문항 묶음만 넘어갔을 때 — 이미지가 바뀐 줄 알까 봐 붙입니다 */
-.samimg{margin:-4px 0 16px;padding:9px 14px;border-radius:8px;background:#EDF3F8;
-  color:#4A7C99;font-size:13.5px;line-height:1.6}
-.samimg b{color:#2B3947}
+/* 같은 자극 안에서 문항 묶음만 넘어갔을 때 — 이미지가 바뀐 줄 알까 봐 붙입니다.
+   화면의 다른 파란 안내와 섞이지 않도록 주황 계열로 따로 뺐습니다 */
+.samimg{display:flex;align-items:center;gap:11px;margin:-4px 0 18px;padding:13px 16px;
+  border-radius:10px;background:#FCF0E4;border:1.5px solid #E8B98A;
+  color:#8A5424;font-size:14.5px;line-height:1.55}
+.samimg .bang{flex:none;width:24px;height:24px;border-radius:50%;background:#D98B45;color:#fff;
+  font:700 15px/24px inherit;text-align:center}
+.samimg b{color:#7A4114}
 .sb{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .cell{position:relative}
 .cell .ph{position:relative;border-radius:7px;overflow:hidden;background:#EDF0F3;aspect-ratio:16/9}
@@ -202,7 +206,8 @@ code{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:.9em;
 .gnav button{font:600 15px/1 inherit;padding:13px 22px;border-radius:9px;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--fg)}
 .gnav button.main{background:#2C3E50;border-color:#2C3E50;color:#fff}
 .gnav button:disabled{opacity:.45;cursor:default}
-.gnav .hint{color:var(--mut);font-size:12.5px}
+.gnav .hint{color:var(--fg);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;
+  padding:6px 12px;border-radius:7px;background:var(--line-s)}
 .sendbar{background:#EDF3F7;border:1px solid #D6E3EC;border-radius:var(--r);padding:13px 18px;
   margin-bottom:20px;font-size:13.5px;color:#33556B}
 .sendbar.bad{background:#FDF0EC;border-color:#F0CFC4;color:#B4472F}
@@ -251,9 +256,15 @@ body.pmode .pflag{display:block}
 #lb.on{display:flex}
 #lb img{max-width:94%;max-height:80vh;border-radius:8px}
 #lb .cap{margin-top:18px;color:#E6EBEF;font-size:14.5px;text-align:center;max-width:800px;line-height:1.6}
-/* 좌우 넘김 영역 — 닫기 버튼 아래에서 시작해야 버튼을 가리지 않습니다 */
-#lb .nb{position:absolute;top:82px;bottom:0;width:16%;cursor:pointer;z-index:1}
-#lb .nb.l{left:0} #lb .nb.r{right:0}
+/* 좌우 넘김 — 눈에 보이는 동그란 화살표 버튼 */
+#lb .nb{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:56px;height:56px;line-height:53px;border-radius:50%;
+  background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.30);
+  color:#fff;font-size:27px;text-align:center;cursor:pointer;user-select:none;transition:.15s}
+#lb .nb:hover{background:rgba(255,255,255,.32)}
+#lb .nb.l{left:26px} #lb .nb.r{right:26px}
+#lb .num{position:absolute;left:0;right:0;bottom:24px;text-align:center;
+  color:#9AA7B2;font-size:13px;user-select:none}
 /* 닫기 — 글씨가 아니라 누르는 버튼으로 */
 #lb .x{position:absolute;top:18px;right:22px;z-index:3;width:46px;height:46px;line-height:44px;
   border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.30);
@@ -303,8 +314,8 @@ body.pmode .pflag{display:block}
 
   <p style="margin:22px 0 0;padding:11px 14px;border-radius:8px;background:#EDF3F8;
      color:#4A7C99;font-size:13px;line-height:1.7">
-    앱 버전 <b>2026-08-24</b> &nbsp;·&nbsp; 캡션 48개 (0821 회의 반영) &nbsp;·&nbsp;
-    이미지 닫기 ✕ 버튼 &nbsp;·&nbsp; 그림 폴더 자동 인식 &nbsp;·&nbsp; 연습용 <b>P00</b> 번호 &nbsp;·&nbsp;
+    앱 버전 <b>2026-08-24 c</b> &nbsp;·&nbsp; 캡션 48개 (0821 회의 반영) &nbsp;·&nbsp;
+    확대 화면 좌우 화살표 &nbsp;·&nbsp; 「같은 자극」 안내 &nbsp;·&nbsp; 문항 묶음 표시 &nbsp;·&nbsp;
     「진행 기록 관리」에서 참가자 한 명만 지우기<br>
     <span style="color:#8B98A4">이 줄이 안 보이면 예전 파일을 열고 계신 것입니다.</span>
   </p>
@@ -377,7 +388,8 @@ body.pmode .pflag{display:block}
   <span class="x" id="lbX" title="닫기">&#10005;</span>
   <span class="xh">닫기</span>
   <img id="lbImg" alt=""><div class="cap" id="lbCap"></div>
-  <div class="nb l" id="lbL"></div><div class="nb r" id="lbR"></div>
+  <div class="nb l" id="lbL">&#8249;</div><div class="nb r" id="lbR">&#8250;</div>
+  <div class="num" id="lbNum"></div>
 </div>
 
 <script>
@@ -545,8 +557,8 @@ const IV_SIT = {
 /* 종합 질문 — 3-1·3-2 삭제, 아래 두 문항만 남김 (2026-08-11 랩미팅).
    「편안할 것 같나요」는 유도가 되므로 쓰지 않습니다. 「적절할 것 같나요」로 물으십시오. */
 const FINAL = [
-  ['3-1','오늘 실험을 쭉 해 보셨는데, 가정에 로봇이 들어온다고 했을 때 전반적으로 어떤 방식이 적절할 것 같나요?',''],
-  ['3-2','한 공간에 있지만 서로 마주치지 않는 상황은 어떨 것 같으세요?','']
+  ['3-1','오늘 실험을 쭉 해 보셨는데, 가정에 로봇이 들어온다고 했을 때 전반적으로 어떤 방식이 적절할 것 같나요? 아까 보셨던 A 방식과 B 방식이 있는데요.',''],
+  ['3-2','한 공간에 있지만 서로 마주치지 않는 상황은 어떨 것 같으세요? 아까는 같은 공간에서 로봇과 마주하는 상황이 있었고, 하나는 아예 집 밖에 있는 상황이었어요. 지금 여쭤보는 건 한 공간에 있는데 서로 마주치지는 않는 상황입니다. (예: 참가자님은 주방 식탁에 앉아 계시고, 로봇은 설거지를 하고 있는 상황)','']
 ];
 
 /* ═══════════ 상태 ═══════════ */
@@ -645,21 +657,48 @@ function probeLayout(){
 function openLb(n,m,code,i){
   lbState={n,m,code,i};
   const caps=CAP[`S${n}_${MOTION[m]}`]||[];
+  bindImg($('#lbImg'),n,m,i);
+  $('#lbImg').style.display='';
   $('#lbImg').src=imgSrc(n,m,i);
   $('#lbCap').innerHTML=`<b>${esc(code)} · ${i}번</b><br>${esc(caps[i-1]||'')}`;
+  $('#lbNum').textContent=`${i} / 6   ·   좌우 화살표로 넘기고, ✕ 또는 Esc 로 닫습니다`;
   $('#lb').classList.add('on');
 }
 function lbStep(d){ if(!lbState) return; let i=lbState.i+d; if(i<1)i=6; if(i>6)i=1; openLb(lbState.n,lbState.m,lbState.code,i); }
+
+/* 그림 한 장이 안 뜨면 나머지 경로로 한 번 더 시도합니다.
+   앱이 켜질 때의 판정이 늦거나 틀려도 이 단계에서 회복됩니다. */
+function bindImg(im,n,m,i,onOk){
+  im.dataset.try='0';
+  im.onerror=function(){
+    const dir=S.imgdir||'IMAGE', f=imgName(n,m,i);
+    if(im.dataset.try==='0'){
+      im.dataset.try='1';
+      const alt = (im.getAttribute('src')||'').indexOf(n+'/'+dir+'/')===0
+                ? `${dir}/${f}` : `${n}/${dir}/${f}`;
+      if(alt!==im.getAttribute('src')){ im.src=alt; return; }
+    }
+    im.style.display='none';
+    im.parentNode.insertAdjacentHTML('beforeend',
+      '<div class="miss">이미지 없음<br>'+esc(im.getAttribute('src')||f)+'</div>');
+  };
+  im.onload=function(){
+    if(im.dataset.try==='1'){                 // 대체 경로로 성공 — 이후는 그쪽으로
+      IMGLAY = (im.getAttribute('src')||'').indexOf(n+'/')===0 ? 'nested' : 'flat';
+    }
+    if(onOk) onOk();
+  };
+}
 
 function storyboard(n,m,code){
   const caps=CAP[`S${n}_${MOTION[m]}`]||[], w=el('div','sbwrap'), g=el('div','sb');
   for(let i=1;i<=6;i++){
     const c=el('div','cell'), src=imgSrc(n,m,i);
-    c.innerHTML=`<div class="ph"><img src="${src}" alt="${esc(code)} ${i}" loading="eager"
-        onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<div class=&quot;miss&quot;>이미지 없음<br>${esc(src)}</div>')">
+    c.innerHTML=`<div class="ph"><img src="${src}" alt="${esc(code)} ${i}" loading="eager">
       <div class="n">${i}</div></div><div class="cap">${esc(caps[i-1]||'')}</div>`;
-    const im=c.querySelector('img'); if(im) im.onclick=()=>openLb(n,m,code,i);
-    if(im) im.addEventListener('load', ()=>{ if(document.querySelector('.vspace')) fitSpace(); });
+    const im=c.querySelector('img');
+    bindImg(im,n,m,i,()=>{ if(document.querySelector('.vspace')) fitSpace(); });
+    im.onclick=()=>openLb(n,m,code,i);
     g.appendChild(c);
   }
   w.appendChild(g); return w;
@@ -670,7 +709,8 @@ function miniSb(n,m,code,label){
   for(let i=1;i<=6;i++){
     const src=imgSrc(n,m,i), d=el('div','ph');
     d.innerHTML=`<img src="${src}" alt=""><div class="n">${i}</div>`;
-    d.querySelector('img').onclick=()=>openLb(n,m,code,i);
+    const mi=d.querySelector('img'); bindImg(mi,n,m,i);
+    mi.onclick=()=>openLb(n,m,code,i);
     r.appendChild(d);
   }
   w.appendChild(r); return w;
@@ -840,7 +880,8 @@ function surveyBlock(B, F, code){
     /* 문항만 바뀌고 자극은 그대로라는 것을 그림 바로 위에 알려 줍니다 */
     if(!sbw.querySelector('.samimg')){
       const note=el('div','samimg');
-      note.innerHTML='앞 문항에서 보신 것과 <b>같은 이미지</b>입니다. 자극은 바뀌지 않았습니다.';
+      note.innerHTML='<span class="bang">!</span><span><b>자극은 그대로입니다.</b> '
+        +'앞에서 보신 것과 같은 그림이고, <b>문항만 바뀌었습니다.</b></span>';
       sbw.insertBefore(note, sbw.firstChild);
     }
   }
@@ -853,7 +894,8 @@ function surveyBlock(B, F, code){
   const last = gi===F.groups.length-1;
   const doneOk = !!(stt && stt!=='실패');
   const next = el('button','main',
-      !last ? '다음 문항 →' : (changed ? '수정본 다시 제출' : (doneOk ? '제출 완료' : '답변 제출')));
+      !last ? '다음 문항 →'
+            : (changed ? '수정본 다시 제출' : (doneOk ? '제출 완료' : '답변 제출')));
   next.onclick = ()=>{
     if(!evalDone(F, code, gi)){ S.need=F.name+code; render(); return; }
     if(!last){ S.sub=gi+1; render(); return; }
@@ -866,7 +908,8 @@ function surveyBlock(B, F, code){
       else render();
     });
   };
-  const hint = el('span','hint', last ? '' : `${gi+1} / ${F.groups.length}`);
+  const hint = el('span','hint',
+    F.groups.length>1 ? `${gi+1} / ${F.groups.length}` : '');
   nav.appendChild(prev); nav.appendChild(el('span','sp')); nav.appendChild(hint); nav.appendChild(next);
   box.appendChild(nav);
   B.appendChild(box);
