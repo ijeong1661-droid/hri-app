@@ -386,10 +386,9 @@ body.pmode .pflag{display:block}
 
 <div id="lb">
   <span class="x" id="lbX" title="닫기">&#10005;</span>
-  <span class="xh">닫기</span>
+  <span class="xh">닫기 · Esc</span>
   <img id="lbImg" alt=""><div class="cap" id="lbCap"></div>
   <div class="nb l" id="lbL">&#8249;</div><div class="nb r" id="lbR">&#8250;</div>
-  <div class="num" id="lbNum"></div>
 </div>
 
 <script>
@@ -662,8 +661,7 @@ function openLb(n,m,code,i){
   bindImg($('#lbImg'),n,m,i);
   $('#lbImg').style.display='';
   $('#lbImg').src=imgSrc(n,m,i);
-  $('#lbCap').innerHTML='';   /* 확대 이미지 아래 설명 문구는 표시하지 않습니다 */
-  $('#lbNum').textContent=`${i} / 6   ·   좌우 화살표로 넘기고, ✕ 또는 Esc 로 닫습니다`;
+  $('#lbCap').innerHTML=`<b>${i} / 6</b><br>${esc(caps[i-1]||'')}`;
   $('#lb').classList.add('on');
 }
 function lbStep(d){ if(!lbState) return; let i=lbState.i+d; if(i<1)i=6; if(i>6)i=1; openLb(lbState.n,lbState.m,lbState.code,i); }
